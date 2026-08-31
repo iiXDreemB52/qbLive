@@ -30,5 +30,11 @@
   <div id="privateJoinModal" class="group-modal hidden"><div class="group-modal-backdrop" data-private-close></div><section class="group-modal-sheet"><div class="group-modal-head"><h2>دخول مجموعة خاصة</h2><button class="round-btn" type="button" data-private-close>✕</button></div><p class="join-private-note">اكتب الرمز الذي أرسله لك صاحب المجموعة.</p><form id="privateJoinForm" class="join-private-form"><input id="privateCode" maxlength="36" placeholder="رمز المجموعة" required /><button class="primary wide" type="submit">دخول المجموعة</button></form></section></div>
   <div id="adminPanel" class="admin-modal hidden"><div class="admin-backdrop" data-admin-close></div><section class="admin-sheet panel"><header><div><span class="eyebrow">صلاحيات كاملة</span><h2>لوحة الأدمن</h2></div><button class="round-btn" type="button" data-admin-close>✕</button></header><div class="admin-stats"><div><b id="statUsers">0</b><span>حساب</span></div><div><b id="statRooms">0</b><span>قروب نشط</span></div><div><b id="statConnections">0</b><span>متصل الآن</span></div></div><div class="admin-tabs"><button id="adminRoomsTab" class="active" type="button">القروبات</button><button id="adminUsersTab" type="button">الحسابات</button><button id="adminRefresh" type="button">تحديث</button></div><div id="adminRoomsView" class="admin-list"></div><div id="adminUsersView" class="admin-list hidden"></div></section></div>
   <div id="toast" class="toast"></div><div id="audioRack" class="audio-rack"></div>
-  <script src="/socket.io/socket.io.js"></script><script src="/app.js"></script><script src="/groups.js"></script><script src="/auth-fix.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/audio-ultra.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.22.1/dist/livekit-client.umd.min.js"></script>
+  <script src="/livekit-sfu.js"></script>
+  <script src="/groups.js"></script>
+  <script src="/auth-fix.js"></script>
 </body></html>

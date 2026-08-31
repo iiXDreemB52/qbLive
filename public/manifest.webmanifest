@@ -1,0 +1,14 @@
+{
+  "name": "سوالف — دردشة صوتية جماعية",
+  "short_name": "سوالف",
+  "description": "دردشة كتابية وصوتية جماعية عربية",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1110",
+  "theme_color": "#0d1110",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

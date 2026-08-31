@@ -3,58 +3,112 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0d1020" />
-  <title>سوالف — دردشة جماعية</title>
+  <meta name="theme-color" content="#101513" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="سوالف" />
+  <title>سوالف — دردشة صوتية جماعية</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="ambient a1"></div><div class="ambient a2"></div>
-  <main class="shell">
-    <header class="topbar">
-      <div>
-        <div class="brand"><span class="brand-dot"></span> سوالف</div>
-        <div class="subtitle">دردشة كتابية وصوتية جماعية بجودة عالية</div>
-      </div>
-      <div id="connectionBadge" class="badge offline">غير متصل</div>
-    </header>
+  <div class="page-glow glow-one"></div><div class="page-glow glow-two"></div>
 
-    <section id="joinCard" class="join-card glass">
-      <div class="join-copy">
-        <span class="eyebrow">غرف خاصة وسريعة</span>
-        <h1>ادخل الغرفة وابدأ السوالف.</h1>
-        <p>اكتب مع المجموعة، وانضم للصوت وقت ما تبي. الصوت يستخدم WebRTC وOpus مع إعدادات 48kHz وجودة مرتفعة.</p>
+  <main id="authPage" class="auth-page">
+    <section class="auth-hero">
+      <div class="brand-lockup"><span class="brand-mark">س</span><div><b>سوالف</b><small>صوت • شات • قروبات</small></div></div>
+      <div class="auth-copy">
+        <span class="eyebrow">دردشة جماعية عربية</span>
+        <h1>ادخل، تكلم، وخلك قريب من الكل.</h1>
+        <p>واجهة صوتية مرتبة مثل تطبيقات القروبات: المتحدثون قدامك، والشات ثابت تحت، وصوت WebRTC عالي الجودة.</p>
       </div>
-      <form id="joinForm" class="join-form">
-        <label>اسمك<input id="nameInput" maxlength="28" placeholder="مثال: مهند" autocomplete="nickname" required /></label>
-        <label>رمز الغرفة<div class="room-row"><input id="roomInput" maxlength="36" placeholder="dream-room" required /><button id="randomRoom" type="button" class="ghost">توليد</button></div></label>
-        <button type="submit" class="primary big">دخول الغرفة</button>
-      </form>
+      <button id="installBtn" class="install-btn hidden" type="button"><span>⬇</span><div><b>تثبيت سوالف</b><small>حمّل الموقع كتطبيق على جهازك</small></div></button>
     </section>
 
-    <section id="app" class="app hidden">
-      <aside class="side glass">
-        <div class="room-title"><span>الغرفة</span><strong id="roomLabel"></strong></div>
-        <div class="voice-card">
-          <div class="voice-head"><div><b>الصوت الجماعي</b><small>Opus • 48 kHz</small></div><span id="voiceCount">0</span></div>
-          <div id="voiceUsers" class="voice-users"></div>
-          <div class="voice-actions">
-            <button id="joinVoice" class="primary">🎙️ انضم للصوت</button>
-            <button id="muteBtn" class="ghost hidden">🔇 كتم</button>
-            <button id="deafenBtn" class="ghost hidden">🎧 صمّ</button>
-            <button id="leaveVoice" class="danger hidden">خروج</button>
-          </div>
-          <div id="voiceHint" class="hint">قد يطلب المتصفح إذن الميكروفون عند أول انضمام.</div>
-        </div>
-        <div class="members-block"><div class="section-label">الموجودون الآن <span id="memberCount">0</span></div><div id="members" class="members"></div></div>
-      </aside>
+    <section class="auth-card panel">
+      <div class="auth-tabs"><button id="loginTab" class="active" type="button">تسجيل الدخول</button><button id="registerTab" type="button">حساب جديد</button></div>
 
-      <section class="chat glass">
-        <div class="chat-head"><div><b># الدردشة العامة</b><small id="chatStatus">متصل بالغرفة</small></div><button id="copyRoom" class="ghost small">نسخ الرمز</button></div>
-        <div id="messages" class="messages"></div>
-        <form id="messageForm" class="composer"><textarea id="messageInput" rows="1" maxlength="1000" placeholder="اكتب رسالة..." required></textarea><button class="send" aria-label="إرسال">➤</button></form>
-      </section>
+      <form id="loginForm" class="auth-form">
+        <label>اسم المستخدم<input id="loginUsername" autocomplete="username" maxlength="28" placeholder="اسمك" required /></label>
+        <label>الباسورد<input id="loginPassword" type="password" autocomplete="current-password" maxlength="128" placeholder="••••••••" required /></label>
+        <button class="primary wide" type="submit">دخول</button>
+      </form>
+
+      <form id="registerForm" class="auth-form hidden">
+        <div class="avatar-picker">
+          <button id="avatarPickBtn" type="button" class="avatar-preview"><span id="avatarPreviewText">+</span><img id="avatarPreview" class="hidden" alt="صورة البروفايل" /></button>
+          <div><b>صورة البروفايل</b><small>اختيارية — تظهر بشكل دائري داخل القروب</small></div>
+          <input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+        </div>
+        <label>اسم المستخدم<input id="registerUsername" autocomplete="username" maxlength="28" placeholder="مثال: Muhannad" required /></label>
+        <label>الباسورد<input id="registerPassword" type="password" autocomplete="new-password" maxlength="128" minlength="6" placeholder="6 أحرف أو أكثر" required /></label>
+        <button class="primary wide" type="submit">إنشاء الحساب</button>
+      </form>
+
+      <div class="divider"><span>أو</span></div>
+      <div id="googleArea" class="google-area"><button id="googleFallback" class="google-btn" type="button"><span class="google-g">G</span> المتابعة عن طريق Google</button></div>
+      <p id="authNote" class="form-note">الحساب يحفظ اسمك وصورتك ويعطيك دخول ثابت للموقع.</p>
     </section>
   </main>
+
+  <main id="lobbyPage" class="lobby-page hidden">
+    <header class="lobby-top">
+      <div class="brand-lockup compact"><span class="brand-mark">س</span><div><b>سوالف</b><small id="connectionBadge">جاري الاتصال...</small></div></div>
+      <div class="user-actions">
+        <button id="adminBtn" class="admin-entry hidden" type="button">لوحة الأدمن</button>
+        <div class="me-chip"><img id="meAvatar" alt="" /><span id="meAvatarFallback"></span><div><b id="meName"></b><small id="meRole">حساب عادي</small></div></div>
+        <button id="logoutBtn" class="icon-btn" type="button" title="تسجيل الخروج">↪</button>
+      </div>
+    </header>
+
+    <section class="lobby-card panel">
+      <div class="lobby-copy"><span class="eyebrow">قروب خاص</span><h2>ادخل رمز القروب وابدأ السوالف.</h2><p>تقدر تستخدم أي رمز، وترسله لأصحابك. أول شخص يدخل الرمز ينشئ القروب تلقائيًا.</p></div>
+      <form id="joinForm" class="join-form">
+        <label>رمز القروب<div class="room-row"><input id="roomInput" maxlength="36" placeholder="dream-room" required /><button id="randomRoom" type="button" class="soft">توليد</button></div></label>
+        <button type="submit" class="primary wide">دخول القروب</button>
+      </form>
+    </section>
+  </main>
+
+  <main id="roomPage" class="room-page hidden">
+    <header class="room-topbar">
+      <button id="leaveRoomTop" class="round-btn danger-lite" type="button">✕</button>
+      <div class="room-center-title"><b id="roomLabel"></b><small><span id="memberCount">0</span> في القروب</small></div>
+      <div class="room-mini-users"><div id="miniAvatars" class="mini-avatars"></div><span id="voiceCountTop">0</span><span class="people-icon">♟</span></div>
+    </header>
+
+    <section class="voice-stage-wrap">
+      <div id="voiceStage" class="voice-stage"></div>
+      <div id="stageEmpty" class="stage-empty"><div class="empty-orb">🎙</div><b>ما فيه أحد بالصوت</b><span>اضغط زر المايك تحت وابدأ السوالف</span></div>
+    </section>
+
+    <section id="chatSheet" class="chat-sheet">
+      <div class="chat-grip"></div>
+      <div id="messages" class="messages"></div>
+      <form id="messageForm" class="composer"><textarea id="messageInput" rows="1" maxlength="1000" placeholder="اكتب رسالة..." required></textarea><button class="send-btn" aria-label="إرسال" type="submit">➤</button></form>
+    </section>
+
+    <nav class="room-controls">
+      <button id="deafenBtn" class="control-btn" type="button" title="الصوت">🔊</button>
+      <button id="joinVoice" class="control-btn mic-main" type="button" title="انضم للصوت">🎙</button>
+      <button id="muteBtn" class="control-btn mic-main hidden" type="button" title="كتم المايك">🎙</button>
+      <button id="leaveVoice" class="control-btn hidden" type="button" title="الخروج من الصوت">☎</button>
+      <button id="chatToggle" class="control-btn" type="button" title="الشات">💬</button>
+    </nav>
+  </main>
+
+  <div id="adminPanel" class="admin-modal hidden">
+    <div class="admin-backdrop" data-admin-close></div>
+    <section class="admin-sheet panel">
+      <header><div><span class="eyebrow">صلاحيات كاملة</span><h2>لوحة الأدمن</h2></div><button class="round-btn" type="button" data-admin-close>✕</button></header>
+      <div class="admin-stats"><div><b id="statUsers">0</b><span>حساب</span></div><div><b id="statRooms">0</b><span>قروب نشط</span></div><div><b id="statConnections">0</b><span>متصل الآن</span></div></div>
+      <div class="admin-tabs"><button id="adminRoomsTab" class="active" type="button">القروبات</button><button id="adminUsersTab" type="button">الحسابات</button><button id="adminRefresh" type="button">تحديث</button></div>
+      <div id="adminRoomsView" class="admin-list"></div>
+      <div id="adminUsersView" class="admin-list hidden"></div>
+    </section>
+  </div>
 
   <div id="toast" class="toast"></div>
   <div id="audioRack" class="audio-rack"></div>

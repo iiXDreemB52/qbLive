@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1020" />
+  <title>سوالف — دردشة جماعية</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="ambient a1"></div><div class="ambient a2"></div>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="brand"><span class="brand-dot"></span> سوالف</div>
+        <div class="subtitle">دردشة كتابية وصوتية جماعية بجودة عالية</div>
+      </div>
+      <div id="connectionBadge" class="badge offline">غير متصل</div>
+    </header>
+
+    <section id="joinCard" class="join-card glass">
+      <div class="join-copy">
+        <span class="eyebrow">غرف خاصة وسريعة</span>
+        <h1>ادخل الغرفة وابدأ السوالف.</h1>
+        <p>اكتب مع المجموعة، وانضم للصوت وقت ما تبي. الصوت يستخدم WebRTC وOpus مع إعدادات 48kHz وجودة مرتفعة.</p>
+      </div>
+      <form id="joinForm" class="join-form">
+        <label>اسمك<input id="nameInput" maxlength="28" placeholder="مثال: مهند" autocomplete="nickname" required /></label>
+        <label>رمز الغرفة<div class="room-row"><input id="roomInput" maxlength="36" placeholder="dream-room" required /><button id="randomRoom" type="button" class="ghost">توليد</button></div></label>
+        <button type="submit" class="primary big">دخول الغرفة</button>
+      </form>
+    </section>
+
+    <section id="app" class="app hidden">
+      <aside class="side glass">
+        <div class="room-title"><span>الغرفة</span><strong id="roomLabel"></strong></div>
+        <div class="voice-card">
+          <div class="voice-head"><div><b>الصوت الجماعي</b><small>Opus • 48 kHz</small></div><span id="voiceCount">0</span></div>
+          <div id="voiceUsers" class="voice-users"></div>
+          <div class="voice-actions">
+            <button id="joinVoice" class="primary">🎙️ انضم للصوت</button>
+            <button id="muteBtn" class="ghost hidden">🔇 كتم</button>
+            <button id="deafenBtn" class="ghost hidden">🎧 صمّ</button>
+            <button id="leaveVoice" class="danger hidden">خروج</button>
+          </div>
+          <div id="voiceHint" class="hint">قد يطلب المتصفح إذن الميكروفون عند أول انضمام.</div>
+        </div>
+        <div class="members-block"><div class="section-label">الموجودون الآن <span id="memberCount">0</span></div><div id="members" class="members"></div></div>
+      </aside>
+
+      <section class="chat glass">
+        <div class="chat-head"><div><b># الدردشة العامة</b><small id="chatStatus">متصل بالغرفة</small></div><button id="copyRoom" class="ghost small">نسخ الرمز</button></div>
+        <div id="messages" class="messages"></div>
+        <form id="messageForm" class="composer"><textarea id="messageInput" rows="1" maxlength="1000" placeholder="اكتب رسالة..." required></textarea><button class="send" aria-label="إرسال">➤</button></form>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <div id="audioRack" class="audio-rack"></div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

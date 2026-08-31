@@ -1,11 +1,11 @@
 {
   "name": "group-voice-chat",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "description": "Independent Arabic group text and high-quality voice chat",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node -r ./groups-preload.js server.js"
   },
   "engines": {
     "node": ">=20"

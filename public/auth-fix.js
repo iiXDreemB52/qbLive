@@ -10,3 +10,10 @@
     if (divider) divider.classList.toggle('hidden', !enabled);
   } catch {}
 })();
+
+(() => {
+  const s = document.createElement('script');
+  s.src = '/audio-ultra.js?v=1';
+  s.async = false;
+  document.body.appendChild(s);
+})();

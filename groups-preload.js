@@ -3,13 +3,52 @@ const crypto=require('crypto');
 const socketIo=require('socket.io');
 const OriginalServer=socketIo.Server;
 const STORE=process.env.GROUPS_FALLBACK_FILE||'/tmp/sawalef-groups.json';
+const AUTH_STORE=process.env.AUTH_FALLBACK_FILE||'/tmp/sawalef-auth.json';
+const ADMIN_NAME=String(process.env.SAWALEF_ADMIN_USERNAME||'KEMO').trim().toLowerCase();
 let groups=[];
+
+function isAdminUser(u){
+  const key=String(u?.username_key||u?.username||'').trim().toLowerCase();
+  return key===ADMIN_NAME;
+}
+function forceAdmin(u){
+  if(u&&isAdminUser(u))u.role='admin';
+  return u;
+}
+function persistFallbackAdmin(){
+  try{
+    if(!fs.existsSync(AUTH_STORE))return;
+    const d=JSON.parse(fs.readFileSync(AUTH_STORE,'utf8'));
+    if(!Array.isArray(d.users))return;
+    let changed=false;
+    for(const u of d.users){
+      if(isAdminUser(u)&&u.role!=='admin'){u.role='admin';changed=true;}
+    }
+    if(changed)fs.writeFileSync(AUTH_STORE,JSON.stringify(d),{mode:0o600});
+  }catch(e){console.error('Admin role persistence failed:',e.message||e)}
+}
+
+// If PostgreSQL is connected later, keep the configured KEMO account admin there too
+// without changing its password.
+try{
+  const pg=require('pg');
+  const originalQuery=pg.Pool.prototype.query;
+  pg.Pool.prototype.query=function(...args){
+    const out=originalQuery.apply(this,args);
+    if(!out||typeof out.then!=='function')return out;
+    return out.then(result=>{
+      if(Array.isArray(result?.rows))result.rows.forEach(forceAdmin);
+      return result;
+    });
+  };
+}catch{}
+
 function load(){try{if(fs.existsSync(STORE)){const d=JSON.parse(fs.readFileSync(STORE,'utf8'));groups=Array.isArray(d.groups)?d.groups:[]}}catch(e){console.error('Groups load failed:',e.message||e)}}
 function save(){try{fs.writeFileSync(STORE,JSON.stringify({groups}),{mode:0o600})}catch(e){console.error('Groups save failed:',e.message||e)}}
 function clean(v,max=80){return String(v??'').replace(/[\u0000-\u001F\u007F]/g,'').trim().slice(0,max)}
 function validImage(v){if(!v)return'';return /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(v)&&v.length<=650000?v:''}
 function makeCode(){let c;do{c='grp-'+crypto.randomBytes(4).toString('hex')}while(groups.some(g=>g.roomId===c));return c}
-function publicUser(u){return u?{id:u.id,name:u.display_name||u.username||'زائر',username:u.username||'',avatar:u.avatar||'',role:u.role||'user'}:null}
+function publicUser(u){if(!u)return null;forceAdmin(u);return{id:u.id,name:u.display_name||u.username||'زائر',username:u.username||'',avatar:u.avatar||'',role:u.role||'user'}}
 function install(io){load();
   function siteUsers(){const map=new Map();for(const s of io.sockets.sockets.values()){const u=publicUser(s.data.user);if(u&&!map.has(u.id))map.set(u.id,u)}return [...map.values()]}
   function groupPayload(g){const active=[];const seen=new Set();for(const s of io.sockets.sockets.values()){if(s.data.roomId!==g.roomId)continue;const u=publicUser(s.data.user);if(u&&!seen.has(u.id)){seen.add(u.id);active.push(u)}}return{id:g.id,roomId:g.roomId,name:g.name,type:g.type,image:g.image||'',createdAt:g.createdAt,activeCount:active.length,activeUsers:active.slice(0,6)}}
@@ -17,6 +56,10 @@ function install(io){load();
   function emitPresence(){io.emit('site-presence',{users:siteUsers()})}
   function emitGroups(){io.emit('groups-updated',{groups:publicGroups()})}
   io.on('connection',socket=>{
+    if(isAdminUser(socket.data.user)){
+      socket.data.user.role='admin';
+      persistFallbackAdmin();
+    }
     setTimeout(()=>{emitPresence();socket.emit('groups-updated',{groups:publicGroups()})},0);
     socket.on('groups:list',(_p,ack=()=>{})=>ack({ok:true,groups:publicGroups()}));
     socket.on('site-presence:list',(_p,ack=()=>{})=>ack({ok:true,users:siteUsers()}));

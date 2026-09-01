@@ -1,5 +1,5 @@
-const CACHE='sawalef-v4';
-const ASSETS=['/','/styles.css','/app.js','/groups.js','/livekit-sfu.js','/livekit-audio-fix.js','/livekit-admin-monitor.js','/manifest.webmanifest','/icon.svg'];
+const CACHE='sawalef-v5';
+const ASSETS=['/','/styles.css','/app.js','/audio-ultra.js','/groups.js','/livekit-sfu.js','/livekit-audio-fix.js','/livekit-admin-monitor.js','/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

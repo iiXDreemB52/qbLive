@@ -19,7 +19,6 @@
     const existing = document.querySelector(`script[data-sawalef-lazy="${key}"]`);
     if (existing?.dataset.loaded === '1') return Promise.resolve();
     if (existing?.__loadPromise) return existing.__loadPromise;
-
     const script = existing || document.createElement('script');
     script.src = src;
     script.async = true;
@@ -31,13 +30,8 @@
         if (done) return;
         done = true;
         clearTimeout(timer);
-        if (ok) {
-          script.dataset.loaded = '1';
-          resolve();
-        } else {
-          try { script.remove(); } catch {}
-          reject(err || new Error(`تعذر تحميل ${key}`));
-        }
+        if (ok) { script.dataset.loaded = '1'; resolve(); }
+        else { try { script.remove(); } catch {} reject(err || new Error(`تعذر تحميل ${key}`)); }
       }
       script.onload = () => finish(true);
       script.onerror = () => finish(false, new Error(`فشل تحميل ${key}`));
@@ -64,22 +58,21 @@
       addCss(`/room-experience-v10.css?v=${VERSION}`, 'room-experience-css');
       addCss(`/room-experience-v11.css?v=${VERSION}`, 'room-experience-v11-css');
 
-      // Let the room paint first. Loading the voice stack must never freeze navigation into a group.
       await nextPaint();
-
-      // LiveKit is served from this Render service now; room entry no longer waits on jsDelivr/unpkg.
       await loadLiveKitLocal();
       await loadScript(`/voice-v3.js?v=${VERSION}`, 'voice-v3');
       document.dispatchEvent(new CustomEvent('sawalef:voice-core-ready'));
 
-      // Independent lightweight features can initialize together.
       await Promise.all([
         loadScript(`/livekit-audio-fix.js?v=${VERSION}`, 'livekit-audio-fix'),
         loadScript(`/room-data-v1.js?v=${VERSION}`, 'room-data-v1'),
         loadScript(`/room-perf-v1.js?v=${VERSION}`, 'room-perf-v1'),
       ]);
 
-      // One screen-share/control implementation only. v11 is explicitly loaded after v10.
+      // v10 references Notification directly; provide a harmless compatibility object only when absent.
+      if (typeof window.Notification === 'undefined') window.Notification = { permission: 'denied' };
+
+      // Exactly one ordered screen-share stack: v10 base first, then the v11 refinements.
       await loadScript(`/room-experience-v10.js?v=${VERSION}`, 'room-experience-v10');
       await loadScript(`/room-experience-v11.js?v=${VERSION}`, 'room-experience-v11');
 

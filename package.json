@@ -5,7 +5,7 @@
   "description": "Independent Arabic group text and high-quality voice chat",
   "main": "server.js",
   "scripts": {
-    "start": "node -r ./groups-preload.js server.js"
+    "start": "node -r ./groups-preload.js -r ./livekit-monitor-preload.js server.js"
   },
   "engines": {
     "node": ">=20"

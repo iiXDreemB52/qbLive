@@ -1,10 +1,33 @@
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 
 const BASE = 'https://sawalef-voice-chat-ekoj.onrender.com';
 const USER = `e2e${Date.now().toString(36).slice(-8)}`;
 const PASS = 'SawalefE2E_2026!';
 const started = Date.now();
 const since = () => ((Date.now() - started) / 1000).toFixed(2);
+const localLoader = readFileSync('public/room-runtime-loader.js', 'utf8');
+const EXPECTED_VERSION = localLoader.match(/const VERSION = ['"]([^'"]+)['"]/)?.[1] || '';
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function waitForExactDeploy() {
+  if (!EXPECTED_VERSION) throw new Error('Could not read expected Sawalef runtime version');
+  const marker = `const VERSION = '${EXPECTED_VERSION}'`;
+  for (let i = 0; i < 45; i++) {
+    try {
+      const res = await fetch(`${BASE}/room-runtime-loader.js?probe=${Date.now()}`, { cache: 'no-store' });
+      const text = await res.text();
+      if (res.ok && text.includes(marker)) {
+        console.log(`[${since()}s] production runtime v${EXPECTED_VERSION} is live`);
+        return;
+      }
+    } catch {}
+    await sleep(2000);
+  }
+  throw new Error(`Production did not reach runtime v${EXPECTED_VERSION}`);
+}
+
+await waitForExactDeploy();
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, permissions: ['microphone'] });
@@ -51,7 +74,7 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.roomRuntime === 'ready', { timeout: 10000 });
   console.log(`[${since()}s] room runtime ready`);
 
-  let controlDiag = await page.evaluate(() => {
+  const controlDiag = await page.evaluate(() => {
     const b = document.getElementById('screenShareBtn');
     const nav = document.querySelector('.room-controls');
     const br = b?.getBoundingClientRect?.();
@@ -72,6 +95,10 @@ try {
       navChildren: nav ? [...nav.children].map(x => ({id:x.id,className:x.className})) : [],
       roomHidden: document.getElementById('roomPage')?.classList.contains('hidden'),
       runtime: document.documentElement.dataset.roomRuntime || '',
+      runtimeStep: document.documentElement.dataset.roomRuntimeStep || '',
+      hdrOption: Boolean(document.getElementById('screenHdrCheck')),
+      activeSharePanel: Boolean(document.getElementById('activeSharePanel')),
+      topNotification: Boolean(document.querySelector('.top-call-notify')),
     };
   });
   console.log('CONTROL_DIAGNOSTIC', JSON.stringify(controlDiag));
@@ -79,6 +106,9 @@ try {
   if (!controlDiag.buttonExists) throw new Error(`Screen share control missing: ${JSON.stringify(controlDiag)}`);
   if (controlDiag.buttonDisplay === 'none' || controlDiag.buttonVisibility === 'hidden' || !controlDiag.buttonRect || controlDiag.buttonRect.w < 1 || controlDiag.buttonRect.h < 1) {
     throw new Error(`Screen share control not visible: ${JSON.stringify(controlDiag)}`);
+  }
+  if (!controlDiag.hdrOption || !controlDiag.activeSharePanel || !controlDiag.topNotification) {
+    throw new Error(`v11 room extras missing: ${JSON.stringify(controlDiag)}`);
   }
 
   const before = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
@@ -96,6 +126,7 @@ try {
     livekitState: window.SawalefLiveKit?.room?.state || window.SawalefLiveKit?.room?.connectionState || '',
     screenButton: Boolean(document.getElementById('screenShareBtn')),
     runtimeState: document.documentElement.dataset.roomRuntime || '',
+    runtimeStep: document.documentElement.dataset.roomRuntimeStep || '',
     runtimeMs: Number(window.__sawalefRoomRuntimeMs || 0),
     longTasks: Number(window.__sawalefRoomPerf?.longTasks || 0),
     maxLongTaskMs: Number(window.__sawalefRoomPerf?.maxLongTaskMs || 0),
@@ -106,6 +137,7 @@ try {
   if (roomVisibleMs > 3500) throw new Error(`Room navigation too slow: ${roomVisibleMs}ms`);
   if (perf.runtimeMs > 8000) throw new Error(`Room runtime too slow: ${perf.runtimeMs}ms`);
   if (clickMs > 1200) throw new Error(`Room controls are sluggish: ${clickMs}ms`);
+  if (perf.maxLongTaskMs > 250) throw new Error(`Main thread long task too large: ${perf.maxLongTaskMs}ms`);
   if (pageErrors.length) throw new Error(`Page errors detected: ${pageErrors.join(' | ')}`);
 
   console.log(`[${since()}s] E2E PASS`);

@@ -29,7 +29,10 @@ async function waitForExactDeploy() {
 
 await waitForExactDeploy();
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
+});
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, permissions: ['microphone'] });
 const page = await context.newPage();
 const pageErrors = [];
@@ -70,9 +73,41 @@ try {
   await page.waitForFunction(() => Boolean(window.SawalefLiveKit), { timeout: 10000 });
   console.log(`[${since()}s] Sawalef LiveKit runtime loaded`);
   await page.waitForFunction(() => Boolean(window.SawalefLiveKit?.room), { timeout: 15000 });
+  console.log(`[${since()}s] listener room exists`);
+  await page.waitForFunction(() => {
+    const r = window.SawalefLiveKit?.room;
+    return String(r?.state || r?.connectionState || '').toLowerCase() === 'connected';
+  }, { timeout: 15000 });
   console.log(`[${since()}s] listener room connected`);
   await page.waitForFunction(() => document.documentElement.dataset.roomRuntime === 'ready', { timeout: 10000 });
   console.log(`[${since()}s] room runtime ready`);
+
+  const joinStarted = Date.now();
+  await page.click('#joinVoice', { timeout: 3000 });
+  await page.waitForFunction(() => {
+    const mute = document.getElementById('muteBtn');
+    const join = document.getElementById('joinVoice');
+    let joined = false;
+    try { joined = Boolean(joinedVoice); } catch {}
+    return joined && mute && !mute.classList.contains('hidden') && join?.classList.contains('hidden');
+  }, { timeout: 12000 });
+  const joinMs = Date.now() - joinStarted;
+  console.log(`[${since()}s] voice join completed in ${joinMs}ms`);
+
+  const micState = await page.evaluate(() => {
+    const r = window.SawalefLiveKit?.room;
+    let joined = false, isMuted = false;
+    try { joined = Boolean(joinedVoice); isMuted = Boolean(muted); } catch {}
+    return {
+      joined,
+      muted: isMuted,
+      micEnabled: Boolean(r?.localParticipant?.isMicrophoneEnabled),
+      audioPubs: r?.localParticipant?.audioTrackPublications?.size || 0,
+      joinDisabled: Boolean(document.getElementById('joinVoice')?.disabled),
+      muteHidden: document.getElementById('muteBtn')?.classList.contains('hidden'),
+    };
+  });
+  console.log('MIC_DIAGNOSTIC', JSON.stringify(micState));
 
   const controlDiag = await page.evaluate(() => {
     const b = document.getElementById('screenShareBtn');
@@ -110,6 +145,9 @@ try {
   if (!controlDiag.hdrOption || !controlDiag.activeSharePanel || !controlDiag.topNotification) {
     throw new Error(`v11 room extras missing: ${JSON.stringify(controlDiag)}`);
   }
+  if (!micState.joined || !micState.micEnabled || micState.audioPubs < 1) {
+    throw new Error(`Microphone join failed: ${JSON.stringify(micState)}`);
+  }
 
   const before = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
   const clickStarted = Date.now();
@@ -131,11 +169,12 @@ try {
     longTasks: Number(window.__sawalefRoomPerf?.longTasks || 0),
     maxLongTaskMs: Number(window.__sawalefRoomPerf?.maxLongTaskMs || 0),
   }));
-  console.log('FINAL_STATE', JSON.stringify({ ...perf, roomVisibleMs, clickMs }));
+  console.log('FINAL_STATE', JSON.stringify({ ...perf, roomVisibleMs, joinMs, clickMs }));
 
   if (perf.booting || !perf.roomVisible || !perf.livekit || !perf.sawalefLiveKit || !perf.screenButton || perf.runtimeState !== 'ready') throw new Error(`Invalid final state: ${JSON.stringify(perf)}`);
   if (roomVisibleMs > 3500) throw new Error(`Room navigation too slow: ${roomVisibleMs}ms`);
   if (perf.runtimeMs > 8000) throw new Error(`Room runtime too slow: ${perf.runtimeMs}ms`);
+  if (joinMs > 6000) throw new Error(`Voice join too slow: ${joinMs}ms`);
   if (clickMs > 1200) throw new Error(`Room controls are sluggish: ${clickMs}ms`);
   if (perf.maxLongTaskMs > 250) throw new Error(`Main thread long task too large: ${perf.maxLongTaskMs}ms`);
   if (pageErrors.length) throw new Error(`Page errors detected: ${pageErrors.join(' | ')}`);

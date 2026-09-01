@@ -19,7 +19,7 @@ let groups=[];
 function livekitReady(){return Boolean(AccessToken&&LIVEKIT_URL&&LIVEKIT_API_KEY&&LIVEKIT_API_SECRET)}
 function isAdminUser(u){
   const key=String(u?.username_key||u?.username||'').trim().toLowerCase();
-  return key===ADMIN_NAME;
+  return key===ADMIN_NAME||u?.role==='admin';
 }
 function forceAdmin(u){
   if(u&&isAdminUser(u))u.role='admin';
@@ -75,6 +75,16 @@ async function persistGroup(g){
     [g.id,g.roomId,g.name,g.type,g.image||'',g.createdBy||null,g.createdAt]
   );
 }
+async function deletePersistedGroup(roomId){
+  const room=roomCode(roomId);
+  const index=groups.findIndex(g=>g.roomId===room);
+  if(index<0)return null;
+  const group=groups[index];
+  if(db)await db.query('DELETE FROM groups WHERE room_id=$1',[room]);
+  groups.splice(index,1);
+  if(!db)saveFallback();
+  return group;
+}
 function clean(v,max=80){return String(v??'').replace(/[\u0000-\u001F\u007F]/g,'').trim().slice(0,max)}
 function roomCode(v){return clean(v,36).toLowerCase().replace(/[^a-z0-9_-]/g,'')}
 function validImage(v){if(!v)return'';return /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(v)&&v.length<=650000?v:''}
@@ -97,8 +107,9 @@ async function makeLiveKitToken(socket,requestedRoom){
 function install(io){
   const ready=load();
   function siteUsers(){const map=new Map();for(const s of io.sockets.sockets.values()){const u=publicUser(s.data.user);if(u&&!map.has(u.id))map.set(u.id,u)}return [...map.values()]}
-  function groupPayload(g){const active=[];const seen=new Set();for(const s of io.sockets.sockets.values()){if(s.data.roomId!==g.roomId)continue;const u=publicUser(s.data.user);if(u&&!seen.has(u.id)){seen.add(u.id);active.push(u)}}return{id:g.id,roomId:g.roomId,name:g.name,type:g.type,image:g.image||'',createdAt:g.createdAt,activeCount:active.length,activeUsers:active.slice(0,6)}}
+  function groupPayload(g){const active=[];const seen=new Set();let voiceCount=0;for(const s of io.sockets.sockets.values()){if(s.data.roomId!==g.roomId)continue;const u=publicUser(s.data.user);if(s.data.voice)voiceCount++;if(u&&!seen.has(u.id)){seen.add(u.id);active.push(u)}}return{id:g.id,roomId:g.roomId,name:g.name,type:g.type,image:g.image||'',createdAt:g.createdAt,activeCount:active.length,voiceCount,activeUsers:active.slice(0,6)}}
   function publicGroups(){return groups.filter(g=>g.type==='public').map(groupPayload).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))}
+  function allGroups(){return groups.map(groupPayload).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))}
   function emitPresence(){io.emit('site-presence',{users:siteUsers()})}
   function emitGroups(){io.emit('groups-updated',{groups:publicGroups()})}
   ready.then(()=>emitGroups()).catch(()=>{});
@@ -114,6 +125,23 @@ function install(io){
     socket.on('livekit:token',async(payload={},ack=()=>{})=>{
       try{ack(await makeLiveKitToken(socket,payload.roomId));}
       catch(e){console.error('LiveKit token error:',e.message||e);ack({ok:false,configured:true,error:'تعذر تجهيز اتصال الصوت عالي الجودة.'});}
+    });
+    socket.on('admin:groups:list',async(_p,ack=()=>{})=>{
+      if(!isAdminUser(socket.data.user))return ack({ok:false,error:'صلاحية أدمن مطلوبة.'});
+      try{await ready;ack({ok:true,groups:allGroups()})}catch(e){ack({ok:false,error:'تعذر تحميل القروبات.'})}
+    });
+    socket.on('admin:group:delete',async(payload={},ack=()=>{})=>{
+      if(!isAdminUser(socket.data.user))return ack({ok:false,error:'صلاحية أدمن مطلوبة.'});
+      try{
+        await ready;
+        const room=roomCode(payload.roomId);
+        if(!room)return ack({ok:false,error:'رمز القروب غير صالح.'});
+        const removed=await deletePersistedGroup(room);
+        if(!removed)return ack({ok:false,error:'القروب غير موجود.'});
+        io.to(room).emit('room-closed',{reason:'تم حذف القروب بواسطة الأدمن.'});
+        emitGroups();
+        ack({ok:true,roomId:room});
+      }catch(e){console.error('Admin group delete failed:',e.message||e);ack({ok:false,error:'تعذر حذف القروب.'})}
     });
     socket.on('group:create',async(payload={},ack=()=>{})=>{
       const u=socket.data.user;if(!u)return ack({ok:false,error:'يلزم تسجيل الدخول.'});

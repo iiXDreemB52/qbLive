@@ -80,7 +80,6 @@
       script.addEventListener('load', renderStableGoogleButton, { once: true });
     };
 
-    // لا نخفي الزر البديل إلا بعد ظهور زر Google الرسمي فعلًا.
     syncGoogleVisibility();
     const observer = new MutationObserver(syncGoogleVisibility);
     observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
@@ -94,4 +93,14 @@
     setTimeout(syncGoogleVisibility, 1500);
     setTimeout(syncGoogleVisibility, 4000);
   } catch {}
+})();
+
+(() => {
+  for (const src of ['/livekit-audio-fix.js?v=2', '/livekit-admin-monitor.js?v=2']) {
+    if (document.querySelector(`script[src^="${src.split('?')[0]}"]`)) continue;
+    const s = document.createElement('script');
+    s.src = src;
+    s.defer = true;
+    document.body.appendChild(s);
+  }
 })();

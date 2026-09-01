@@ -1,0 +1,39 @@
+/* Sawalef v11 — faster call controls + live screen-share management */
+#callNotifyBtn{display:none!important}
+.profile-notify-wrap{display:flex;align-items:center;gap:8px;direction:rtl}
+.top-call-notify{width:42px;height:42px;min-width:42px;padding:0;border-radius:14px;display:grid;place-items:center;background:linear-gradient(180deg,#10243d,#0b1829);border:1px solid rgba(128,176,239,.15);color:#a9c8ee;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+.top-call-notify:hover{background:linear-gradient(180deg,#173354,#102440);border-color:rgba(103,163,247,.28)}
+.top-call-notify.active{color:#ffe193;background:linear-gradient(180deg,rgba(133,101,31,.28),rgba(88,65,19,.22));border-color:rgba(255,205,82,.24)}
+.top-call-notify svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.room-topbar{grid-template-columns:auto 1fr auto auto!important}.room-notify{width:40px;height:40px;border-radius:13px}
+
+/* Make the bottom dock feel immediate rather than heavy. */
+.room-controls .control-btn{transition:background-color .06s linear,border-color .06s linear,opacity .06s linear!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important;will-change:auto!important}
+.room-controls .control-btn:hover,.room-controls .control-btn:active,.room-controls .control-btn.instant-press{transform:none!important}
+.room-controls .control-btn.instant-press{filter:brightness(1.18)}
+.room-controls .control-btn.pending{opacity:.68!important;cursor:progress!important}
+.room-controls #screenShareBtn.share-manage{background:linear-gradient(180deg,rgba(47,109,198,.42),rgba(31,72,139,.36))!important;border-color:rgba(87,157,255,.48)!important;color:#e7f2ff!important}
+
+/* HDR option in the start dialog. */
+.hdr-option{border-color:rgba(126,173,238,.14)!important;background:linear-gradient(135deg,rgba(80,116,204,.08),rgba(141,77,181,.07))!important}
+.hdr-option input{accent-color:#6ea8ff!important}
+
+/* One place to manage an active share after it starts. */
+.active-share-panel{order:3;flex:0 0 auto;width:min(1180px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(4,minmax(100px,.8fr)) auto auto;align-items:end;gap:9px;padding:11px;border-radius:18px;background:linear-gradient(150deg,rgba(14,33,56,.97),rgba(7,18,31,.98));border:1px solid rgba(111,168,247,.17);box-shadow:0 14px 40px rgba(0,0,0,.28)}
+.active-share-panel.hidden{display:none!important}
+.share-panel-title{display:flex;align-items:center;gap:9px;min-width:0;align-self:center}.share-panel-title>div{display:grid;gap:3px;min-width:0}.share-panel-title b{font-size:11px;color:#d9eaff}.share-panel-title small{font-size:8.8px;color:#87a2c2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.share-live-dot{width:9px;height:9px;border-radius:50%;background:#52a3ff;box-shadow:0 0 16px rgba(82,163,255,.8);flex:0 0 auto}
+.active-share-panel label{display:grid;gap:5px;font-size:8.5px;font-weight:800;color:#8fa8c8}.active-share-panel select{height:38px;border-radius:11px;background:#081827;color:#edf5ff;border:1px solid rgba(126,173,238,.15);padding:0 9px;outline:none;font-size:10px}
+.share-switch{height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;padding:0 9px!important;border-radius:11px;background:rgba(68,118,188,.07);border:1px solid rgba(126,173,238,.12);cursor:pointer;white-space:nowrap}.share-switch input{width:16px!important;height:16px!important;margin:0!important;padding:0!important;accent-color:#4d91f2;box-shadow:none!important}.share-switch span{font-size:9px;color:#b9cae0}
+.share-apply,.share-stop{height:40px;border-radius:12px;padding:0 12px;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}.share-apply{background:linear-gradient(180deg,#17365b,#102541);border:1px solid rgba(113,171,247,.18);color:#c9ddfa}.share-apply:hover{background:linear-gradient(180deg,#1d4574,#153153)}.share-stop{background:linear-gradient(180deg,#d94759,#ad2f40)!important;border:1px solid rgba(255,121,137,.34)!important;color:white!important;box-shadow:0 9px 24px rgba(197,45,64,.23)}.share-stop:hover{background:linear-gradient(180deg,#eb5366,#c2384a)!important}.share-apply svg,.share-stop svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* Keep people visually above shares; the active panel sits below them and the video grid. */
+.room-call-content .voice-stage-wrap{order:1!important}.room-call-content .screen-share-area{order:2!important}.room-call-content .active-share-panel{order:3!important}
+
+@media(max-width:1050px){.active-share-panel{grid-template-columns:minmax(180px,1.4fr) repeat(2,minmax(110px,1fr)) repeat(2,minmax(100px,.8fr));}.share-apply,.share-stop{grid-column:auto}}
+@media(max-width:720px){
+  .profile-notify-wrap{gap:6px}.top-call-notify{width:38px;height:38px;min-width:38px;border-radius:12px}.top-call-notify svg{width:18px;height:18px}.room-notify{width:36px;height:36px}
+  .room-topbar{grid-template-columns:auto 1fr auto auto!important;gap:7px!important;padding-inline:10px!important}
+  .active-share-panel{grid-template-columns:1fr 1fr;gap:7px;padding:9px;border-radius:15px}.share-panel-title{grid-column:1/-1}.active-share-panel label{min-width:0}.share-switch{height:36px!important}.share-apply,.share-stop{height:38px}.share-stop{grid-column:1/-1}
+  .room-controls{gap:5px!important;padding-inline:7px!important}.room-controls .control-btn{width:62px!important;min-width:62px!important;height:56px!important;border-radius:16px!important}.room-controls .control-btn::after{font-size:7px!important;max-width:57px!important}
+}
+@media(max-width:430px){.room-topbar .room-center-title small{font-size:9px}.room-mini-users{padding:4px 7px!important}.active-share-panel{grid-template-columns:1fr 1fr}.share-panel-title small{max-width:220px}.share-apply span,.share-stop span{font-size:9px}}

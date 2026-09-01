@@ -3,7 +3,15 @@ const path = require('path');
 const fs = require('fs');
 
 const originalStatic = express.static;
-const livekitBundle = path.join(process.cwd(), 'node_modules', 'livekit-client', 'dist', 'livekit-client.umd.min.js');
+const livekitDist = path.join(process.cwd(), 'node_modules', 'livekit-client', 'dist');
+const livekitCandidates = [
+  path.join(livekitDist, 'livekit-client.umd.min.js'),
+  path.join(livekitDist, 'livekit-client.umd.js'),
+];
+
+function resolveLivekitBundle() {
+  return livekitCandidates.find(file => fs.existsSync(file)) || '';
+}
 
 express.static = function sawalefStatic(root, options = {}) {
   const previousSetHeaders = options.setHeaders;
@@ -24,7 +32,11 @@ express.static = function sawalefStatic(root, options = {}) {
   return function sawalefStaticWithVendor(req, res, next) {
     const pathname = String(req.path || req.url || '').split('?')[0];
     if (pathname === '/vendor/livekit-client.umd.min.js') {
-      if (!fs.existsSync(livekitBundle)) return next(new Error('LiveKit browser bundle is missing'));
+      const livekitBundle = resolveLivekitBundle();
+      if (!livekitBundle) {
+        console.error('LiveKit browser bundle is missing. Checked:', livekitCandidates.join(', '));
+        return res.status(503).type('text/plain').send('LiveKit browser bundle unavailable');
+      }
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.sendFile(livekitBundle);

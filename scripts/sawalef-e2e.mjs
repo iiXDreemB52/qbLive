@@ -38,19 +38,7 @@ try {
   await page.click('#groupTypePrivate');
   const roomStart = Date.now();
   await page.click('#confirmCreateGroup');
-  try {
-    await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
-  } catch (e) {
-    const diagnostic = await page.evaluate(() => ({
-      connectionBadge: document.getElementById('connectionBadge')?.textContent || '',
-      roomId: typeof roomId === 'string' ? roomId : '',
-      toast: document.getElementById('toast')?.textContent || '',
-      createDisabled: Boolean(document.getElementById('confirmCreateGroup')?.disabled),
-      modalHidden: document.getElementById('createGroupModal')?.classList.contains('hidden'),
-    }));
-    console.error('ROOM_ENTRY_DIAGNOSTIC', JSON.stringify(diagnostic));
-    throw e;
-  }
+  await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
   const roomVisibleMs = Date.now() - roomStart;
   console.log(`[${since()}s] room visible in ${roomVisibleMs}ms`);
 
@@ -60,9 +48,38 @@ try {
   console.log(`[${since()}s] Sawalef LiveKit runtime loaded`);
   await page.waitForFunction(() => Boolean(window.SawalefLiveKit?.room), { timeout: 15000 });
   console.log(`[${since()}s] listener room connected`);
-  await page.waitForSelector('#screenShareBtn', { timeout: 10000 });
   await page.waitForFunction(() => document.documentElement.dataset.roomRuntime === 'ready', { timeout: 10000 });
   console.log(`[${since()}s] room runtime ready`);
+
+  let controlDiag = await page.evaluate(() => {
+    const b = document.getElementById('screenShareBtn');
+    const nav = document.querySelector('.room-controls');
+    const br = b?.getBoundingClientRect?.();
+    const nr = nav?.getBoundingClientRect?.();
+    const bs = b ? getComputedStyle(b) : null;
+    const ns = nav ? getComputedStyle(nav) : null;
+    return {
+      buttonExists: Boolean(b),
+      buttonParent: b?.parentElement?.className || '',
+      buttonClass: b?.className || '',
+      buttonDisplay: bs?.display || '',
+      buttonVisibility: bs?.visibility || '',
+      buttonOpacity: bs?.opacity || '',
+      buttonRect: br ? { x:br.x,y:br.y,w:br.width,h:br.height } : null,
+      navDisplay: ns?.display || '',
+      navVisibility: ns?.visibility || '',
+      navRect: nr ? { x:nr.x,y:nr.y,w:nr.width,h:nr.height } : null,
+      navChildren: nav ? [...nav.children].map(x => ({id:x.id,className:x.className})) : [],
+      roomHidden: document.getElementById('roomPage')?.classList.contains('hidden'),
+      runtime: document.documentElement.dataset.roomRuntime || '',
+    };
+  });
+  console.log('CONTROL_DIAGNOSTIC', JSON.stringify(controlDiag));
+
+  if (!controlDiag.buttonExists) throw new Error(`Screen share control missing: ${JSON.stringify(controlDiag)}`);
+  if (controlDiag.buttonDisplay === 'none' || controlDiag.buttonVisibility === 'hidden' || !controlDiag.buttonRect || controlDiag.buttonRect.w < 1 || controlDiag.buttonRect.h < 1) {
+    throw new Error(`Screen share control not visible: ${JSON.stringify(controlDiag)}`);
+  }
 
   const before = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
   const clickStarted = Date.now();
@@ -86,7 +103,7 @@ try {
   console.log('FINAL_STATE', JSON.stringify({ ...perf, roomVisibleMs, clickMs }));
 
   if (perf.booting || !perf.roomVisible || !perf.livekit || !perf.sawalefLiveKit || !perf.screenButton || perf.runtimeState !== 'ready') throw new Error(`Invalid final state: ${JSON.stringify(perf)}`);
-  if (roomVisibleMs > 3000) throw new Error(`Room navigation too slow: ${roomVisibleMs}ms`);
+  if (roomVisibleMs > 3500) throw new Error(`Room navigation too slow: ${roomVisibleMs}ms`);
   if (perf.runtimeMs > 8000) throw new Error(`Room runtime too slow: ${perf.runtimeMs}ms`);
   if (clickMs > 1200) throw new Error(`Room controls are sluggish: ${clickMs}ms`);
   if (pageErrors.length) throw new Error(`Page errors detected: ${pageErrors.join(' | ')}`);

@@ -1,0 +1,133 @@
+/* Sawalef v19 polish: compact controls, clean mute badge, lobby notifications, mobile admin */
+
+/* Lobby notification control beside the account chip */
+#lobbyPage .user-actions .lobby-notify-btn{
+  width:42px;height:42px;min-width:42px;padding:0;border-radius:14px;
+  display:grid;place-items:center;background:linear-gradient(180deg,#10233d,#0b182a);
+  border:1px solid rgba(112,169,246,.18);color:#a9cfff;box-shadow:none;
+}
+#lobbyPage .user-actions .lobby-notify-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#lobbyPage .user-actions .lobby-notify-btn.active{background:linear-gradient(180deg,rgba(50,116,215,.38),rgba(31,78,151,.32));border-color:rgba(89,154,247,.48);color:#edf6ff}
+#lobbyPage .user-actions .lobby-notify-btn.unsupported{opacity:.55}
+
+/* Notification button is intentionally removed from the in-call dock. */
+#roomPage #callNotifyBtn{display:none!important}
+
+/* The call dock must fit on one mobile screen without horizontal swiping. */
+#roomPage .room-controls{
+  overflow:hidden!important;
+  justify-content:center!important;
+  gap:clamp(4px,1.4vw,8px)!important;
+  padding-inline:8px!important;
+}
+#roomPage .room-controls .control-btn{
+  flex:0 1 auto!important;
+  width:clamp(50px,15.8vw,64px)!important;
+  min-width:0!important;
+  height:58px!important;
+  border-radius:17px!important;
+  padding:6px 4px!important;
+  gap:3px!important;
+}
+#roomPage .room-controls .control-btn svg{width:19px!important;height:19px!important}
+#roomPage .room-controls .control-btn::after{
+  font-size:7.3px!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+/* Clean microphone-muted badge instead of the broken composed emoji. */
+#roomPage .mute-badge{
+  width:31px!important;height:31px!important;left:-2px!important;bottom:-1px!important;
+  border-radius:50%!important;border:3px solid #f5f8fc!important;font-size:0!important;
+  background-color:#ef3347!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 7V6a3 3 0 0 1 5.7-1.3M15 10v1a3 3 0 0 1-.5 1.7'/%3E%3Cpath d='M5.5 11a6.5 6.5 0 0 0 10.7 5M18.5 11a6.5 6.5 0 0 1-.6 2.6M12 17.5V21M8.5 21h7M3 3l18 18'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;background-position:center!important;background-size:62%!important;
+  box-shadow:0 7px 20px rgba(239,51,71,.28)!important;
+}
+
+/* Chat stays interactive whether the microphone is open or closed. */
+#roomPage .chat-sheet{pointer-events:auto!important}
+#roomPage .composer{position:relative!important;z-index:12!important;pointer-events:auto!important}
+#roomPage .composer textarea,#roomPage .composer button{pointer-events:auto!important}
+#roomPage #messageInput{touch-action:manipulation!important;user-select:text!important;-webkit-user-select:text!important}
+#roomPage #chatToggle{display:flex!important;pointer-events:auto!important}
+#roomPage #chatToggle.hidden{display:flex!important}
+
+/* Admin panel: clean desktop layout and proper mobile bottom sheet/full width cards. */
+#adminPanel .admin-sheet{
+  width:min(960px,calc(100vw - 32px))!important;
+  height:min(780px,92dvh)!important;
+  border-radius:24px!important;
+  padding:20px!important;
+  gap:14px!important;
+  background:linear-gradient(160deg,rgba(12,28,48,.98),rgba(6,17,31,.99))!important;
+  border:1px solid rgba(110,166,242,.16)!important;
+}
+#adminPanel .admin-stats{gap:9px!important}
+#adminPanel .admin-stats>div{
+  background:linear-gradient(180deg,rgba(32,72,122,.19),rgba(17,42,74,.15))!important;
+  border-color:rgba(117,169,239,.13)!important;
+  border-radius:14px!important;
+}
+#adminPanel .admin-tabs{background:rgba(8,22,39,.72)!important;border:1px solid rgba(117,169,239,.1)!important}
+#adminPanel .admin-row{
+  background:linear-gradient(180deg,rgba(22,49,82,.42),rgba(12,29,51,.46))!important;
+  border-color:rgba(113,166,238,.12)!important;
+  border-radius:15px!important;
+}
+#adminPanel .admin-row-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+#adminPanel .admin-row-actions button{white-space:nowrap}
+#adminPanel .advanced-admin-stats{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:9px!important}
+#adminPanel .advanced-admin-stats>div{min-width:0!important}
+
+@media(max-width:720px){
+  #lobbyPage .lobby-top{gap:10px}
+  #lobbyPage .user-actions{gap:6px}
+  #lobbyPage .user-actions .lobby-notify-btn{width:38px;height:38px;min-width:38px;border-radius:12px}
+  #lobbyPage .user-actions .lobby-notify-btn svg{width:18px;height:18px}
+
+  #roomPage .room-controls{gap:4px!important;padding-inline:6px!important}
+  #roomPage .room-controls .control-btn{
+    width:clamp(48px,16.1vw,60px)!important;
+    height:55px!important;border-radius:16px!important;padding:5px 3px!important;
+  }
+  #roomPage .room-controls .control-btn svg{width:18px!important;height:18px!important}
+  #roomPage .room-controls .control-btn::after{font-size:6.9px!important}
+
+  #adminPanel{padding:0!important;place-items:end center!important}
+  #adminPanel .admin-sheet{
+    width:100%!important;height:min(94dvh,820px)!important;max-height:94dvh!important;
+    border-radius:24px 24px 0 0!important;padding:14px 12px calc(14px + env(safe-area-inset-bottom))!important;
+    grid-template-rows:auto auto auto minmax(0,1fr)!important;gap:11px!important;
+  }
+  #adminPanel .admin-sheet header h2{font-size:20px!important;margin-top:5px!important}
+  #adminPanel .admin-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  #adminPanel .admin-stats>div{padding:10px 8px!important;border-radius:12px!important}
+  #adminPanel .admin-stats b{font-size:18px!important}
+  #adminPanel .admin-stats span{font-size:9px!important}
+  #adminPanel .advanced-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+  #adminPanel .admin-tabs{grid-template-columns:1fr 1fr auto!important;gap:5px!important;padding:4px!important}
+  #adminPanel .admin-tabs button{padding:9px 7px!important;font-size:11px!important}
+  #adminPanel .admin-list{gap:7px!important;padding-bottom:10px!important;overscroll-behavior:contain}
+  #adminPanel .admin-row{
+    grid-template-columns:40px minmax(0,1fr)!important;
+    gap:9px!important;padding:10px!important;align-items:center!important;
+  }
+  #adminPanel .admin-row-avatar{width:40px!important;height:40px!important}
+  #adminPanel .admin-row-main{min-width:0!important}
+  #adminPanel .admin-row-main b,#adminPanel .admin-row-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #adminPanel .admin-row-actions{
+    grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    width:100%!important;gap:6px!important;justify-content:stretch!important;
+  }
+  #adminPanel .admin-row-actions button{width:100%!important;padding:9px 7px!important;font-size:10px!important}
+}
+
+@media(max-width:360px){
+  #roomPage .room-controls .control-btn{width:clamp(46px,15.7vw,54px)!important;height:53px!important}
+  #roomPage .room-controls .control-btn::after{font-size:6.3px!important}
+  #adminPanel .admin-stats span{font-size:8px!important}
+}

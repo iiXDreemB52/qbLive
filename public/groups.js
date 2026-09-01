@@ -14,3 +14,39 @@ $('createGroupForm').onsubmit=e=>{e.preventDefault();if(!socket?.connected)retur
 $('openPrivateJoin').onclick=()=>$('privateJoinModal').classList.remove('hidden');document.querySelectorAll('[data-private-close]').forEach(el=>el.onclick=()=> $('privateJoinModal').classList.add('hidden'));$('privateJoinForm').onsubmit=e=>{e.preventDefault();const code=$('privateCode').value.trim();if(!code)return;$('privateJoinModal').classList.add('hidden');joinRoomCode(code)};
 setInterval(()=>{if(!lobbyPage.classList.contains('hidden')){bindGroupsSocket();refreshCommunity()}},4000);
 const originalEnterLobby=enterLobby;enterLobby=function(){if(me&&String(me.username||me.name||'').trim().toLowerCase()==='kemo')me.role='admin';originalEnterLobby();setTimeout(()=>{groupsSocketBound=false;bindGroupsSocket();refreshCommunity()},450)};
+
+function renderStoredAdminGroups(groups=[]){
+  const view=$('adminRoomsView');
+  if(!view)return;
+  view.innerHTML=groups.length?groups.map(g=>`<div class="admin-row"><div class="admin-row-avatar">${g.type==='private'?'🔒':'#'}</div><div class="admin-row-main"><b>${esc(g.name||g.roomId)}</b><small>${esc(g.roomId)} • ${g.type==='private'?'خاص':'عام'} • ${Number(g.activeCount)||0} متصل • ${Number(g.voiceCount)||0} بالصوت</small></div><div class="admin-row-actions"><button class="btn-danger" data-admin-delete-stored-group="${esc(g.roomId)}">حذف</button></div></div>`).join(''):'<div class="empty-admin">لا توجد قروبات محفوظة.</div>';
+  document.querySelectorAll('[data-admin-delete-stored-group]').forEach(btn=>btn.onclick=()=>deleteStoredAdminGroup(btn.dataset.adminDeleteStoredGroup));
+}
+function refreshStoredAdminGroups(){
+  return new Promise(resolve=>{
+    if(me?.role!=='admin'||!socket?.connected)return resolve();
+    socket.emit('admin:groups:list',{},res=>{
+      if(res?.ok){
+        const groups=res.groups||[];
+        $('statRooms').textContent=groups.length;
+        renderStoredAdminGroups(groups);
+      }
+      resolve();
+    });
+  });
+}
+function deleteStoredAdminGroup(roomId){
+  if(!roomId||!socket?.connected)return;
+  if(!confirm(`حذف القروب ${roomId} نهائيًا؟`))return;
+  socket.emit('admin:group:delete',{roomId},res=>{
+    if(!res?.ok)return showToast(res?.error||'تعذر حذف القروب.');
+    showToast('تم حذف القروب نهائيًا.');
+    refreshCommunity();
+    refreshStoredAdminGroups();
+  });
+}
+const baseLoadAdmin=loadAdmin;
+loadAdmin=async function(){
+  await baseLoadAdmin();
+  await refreshStoredAdminGroups();
+};
+$('adminRefresh').onclick=()=>loadAdmin();

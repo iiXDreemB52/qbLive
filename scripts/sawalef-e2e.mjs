@@ -30,7 +30,7 @@ try {
   await page.fill('#registerPassword', PASS);
   await page.click('#registerForm button[type="submit"]');
   await page.waitForSelector('#lobbyPage:not(.hidden)', { timeout: 15000 });
-  await page.waitForFunction(() => Boolean(window.socket?.connected), { timeout: 10000 });
+  await page.waitForFunction(() => document.getElementById('connectionBadge')?.textContent?.trim() === 'متصل', { timeout: 10000 });
   console.log(`[${since()}s] lobby + socket ready as ${USER}`);
 
   await page.click('#openCreateGroup');
@@ -42,7 +42,7 @@ try {
     await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
   } catch (e) {
     const diagnostic = await page.evaluate(() => ({
-      socketConnected: Boolean(window.socket?.connected),
+      connectionBadge: document.getElementById('connectionBadge')?.textContent || '',
       roomId: typeof roomId === 'string' ? roomId : '',
       toast: document.getElementById('toast')?.textContent || '',
       createDisabled: Boolean(document.getElementById('confirmCreateGroup')?.disabled),

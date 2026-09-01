@@ -12,22 +12,22 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function waitForDeploy() {
   const marker = `const VERSION = '${EXPECTED_VERSION}'`;
-  for (let i = 0; i < 45; i++) {
+  for (let i = 0; i < 50; i++) {
     try {
-      const [runtimeRes, polishRes] = await Promise.all([
+      const [runtimeRes, polish19Res, polish20Res] = await Promise.all([
         fetch(`${BASE}/room-runtime-loader.js?smoke=${Date.now()}`, { cache: 'no-store' }),
-        fetch(`${BASE}/polish-v19.js?smoke=${Date.now()}`, { cache: 'no-store' })
+        fetch(`${BASE}/polish-v19.js?smoke=${Date.now()}`, { cache: 'no-store' }),
+        fetch(`${BASE}/polish-v20.js?smoke=${Date.now()}`, { cache: 'no-store' })
       ]);
-      const runtimeText = await runtimeRes.text();
-      const polishText = await polishRes.text();
-      if (runtimeRes.ok && runtimeText.includes(marker) && polishRes.ok && polishText.includes('__sawalefPolishV19')) {
-        console.log(`[${since()}s] runtime v${EXPECTED_VERSION} + polish v19 are live`);
+      const [runtimeText, polish19Text, polish20Text] = await Promise.all([runtimeRes.text(), polish19Res.text(), polish20Res.text()]);
+      if (runtimeRes.ok && runtimeText.includes(marker) && polish19Res.ok && polish19Text.includes('__sawalefPolishV19') && polish20Res.ok && polish20Text.includes('__sawalefPolishV20')) {
+        console.log(`[${since()}s] runtime v${EXPECTED_VERSION} + polish v20 are live`);
         return;
       }
     } catch {}
     await sleep(2000);
   }
-  throw new Error('production did not reach Sawalef polish v19');
+  throw new Error('production did not reach Sawalef polish v20');
 }
 
 await waitForDeploy();
@@ -58,7 +58,9 @@ try {
   await page.waitForSelector('#lobbyPage:not(.hidden)', { timeout: 15000 });
   await page.waitForFunction(() => document.getElementById('connectionBadge')?.textContent?.trim() === 'متصل', { timeout: 12000 });
   await page.waitForSelector('#lobbyNotifyBtn', { state: 'visible', timeout: 5000 });
-  console.log(`[${since()}s] mobile lobby + notification button ready`);
+  const brand = await page.evaluate(() => getComputedStyle(document.querySelector('.brand-mark')).backgroundImage);
+  if (!brand || brand === 'none') throw new Error('Sawalef custom brand image did not load');
+  console.log(`[${since()}s] mobile lobby + custom brand ready`);
 
   await page.click('#openCreateGroup');
   await page.fill('#groupName', `Smoke ${Date.now()}`);
@@ -121,9 +123,7 @@ try {
       roomNotificationDisplay: notif ? getComputedStyle(notif).display : 'missing',
     };
   });
-  console.log('CONTROLS', JSON.stringify(controls));
 
-  // Chat must work while the microphone is open.
   const collapsed = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
   if (collapsed) await page.click('#chatToggle');
   const chatText = `رسالة أثناء المكالمة ${Date.now()}`;
@@ -131,13 +131,29 @@ try {
   await page.click('#messageForm .send-btn');
   await page.waitForFunction(text => [...document.querySelectorAll('.msg-text')].some(el => el.textContent?.includes(text)), chatText, { timeout: 5000 });
 
+  await page.waitForSelector('#mediaSendBtn', { timeout: 5000 });
+  const composer = await page.evaluate(() => {
+    const media = document.getElementById('mediaSendBtn').getBoundingClientRect();
+    const input = document.getElementById('messageInput').getBoundingClientRect();
+    const send = document.querySelector('#messageForm .send-btn').getBoundingClientRect();
+    return { mediaX: media.x, inputX: input.x, sendX: send.x };
+  });
+
+  await page.waitForFunction(() => Boolean(window.SawalefOwnerMeta?.createdBy), { timeout: 5000 });
+  await page.waitForSelector('.owner-msg-delete', { timeout: 5000 });
+  await page.waitForSelector('.owner-name-badge', { timeout: 5000 });
+  const messageNode = page.locator('.msg:not(.msg-media)').filter({ hasText: chatText }).last();
+  const messageId = await messageNode.getAttribute('data-message-id');
+  page.once('dialog', dialog => dialog.accept());
+  await messageNode.locator('.owner-msg-delete').click();
+  await page.waitForFunction(id => !document.querySelector(`#messages .msg[data-message-id="${CSS.escape(id)}"]`), messageId, { timeout: 5000 });
+
   const chatState = await page.evaluate(() => ({
     disabled: document.getElementById('messageInput')?.disabled,
     readOnly: document.getElementById('messageInput')?.readOnly,
     pointer: getComputedStyle(document.getElementById('messageInput')).pointerEvents,
   }));
 
-  // Verify mute visual exists and is the new clean badge styling.
   await page.click('#muteBtn');
   await page.waitForFunction(() => { try { return Boolean(muted); } catch { return false; } }, { timeout: 5000 });
   await page.waitForSelector('.mute-badge', { timeout: 5000 });
@@ -153,7 +169,9 @@ try {
     joinMs,
     ...mic,
     controls,
+    composer,
     chatState,
+    ownerDeleteWorked: true,
     memberCount: await page.textContent('#memberCount'),
     topCount: await page.textContent('#voiceCountTop'),
     muteBadge,
@@ -166,6 +184,7 @@ try {
   if (controls.roomNotificationDisplay !== 'none') throw new Error(`notification button still occupies room dock: ${JSON.stringify(controls)}`);
   if (!controls.visibleIds.includes('chatToggle')) throw new Error('chat control disappeared while in call');
   if (chatState.disabled || chatState.readOnly || chatState.pointer === 'none') throw new Error(`chat input unusable in call: ${JSON.stringify(chatState)}`);
+  if (!(composer.mediaX < composer.inputX && composer.inputX < composer.sendX)) throw new Error(`composer order incorrect: ${JSON.stringify(composer)}`);
   if (result.memberCount !== '1' || result.topCount !== '1') throw new Error(`member count incorrect: ${JSON.stringify({ memberCount: result.memberCount, topCount: result.topCount })}`);
   if (!muteBadge.backgroundImage.includes('svg') && muteBadge.backgroundImage === 'none') throw new Error(`mute badge not polished: ${JSON.stringify(muteBadge)}`);
   if (roomVisibleMs > 3500) throw new Error(`room entry slow: ${roomVisibleMs}ms`);
@@ -174,7 +193,7 @@ try {
   if (runtime.maxLongTaskMs > 250) throw new Error(`main thread blocked: ${runtime.maxLongTaskMs}ms`);
   if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
 
-  console.log('MOBILE SMOKE PASS');
+  console.log('V20 MOBILE SMOKE PASS');
 } finally {
   await browser.close();
 }

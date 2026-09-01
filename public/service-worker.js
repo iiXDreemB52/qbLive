@@ -1,4 +1,4 @@
-const CACHE='sawalef-v13';
+const CACHE='sawalef-v14';
 const CORE_ASSETS=[
   '/styles.css?v=13',
   '/lobby-v2.css?v=13',

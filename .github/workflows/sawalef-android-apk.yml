@@ -1,0 +1,68 @@
+name: Sawalef Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/sawalef-android-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build launcher icon from current Sawalef artwork
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, re
+          svg = Path('public/icon.svg').read_text(encoding='utf-8')
+          match = re.search(r'data:image/webp;base64,([^"\s]+)', svg)
+          if not match:
+              raise SystemExit('Embedded Sawalef artwork was not found in public/icon.svg')
+          out = Path('android/app/src/main/res/drawable-nodpi')
+          out.mkdir(parents=True, exist_ok=True)
+          (out / 'sawalef_icon.webp').write_bytes(base64.b64decode(match.group(1)))
+          PY
+
+      - name: Build APK
+        run: gradle -p android --no-daemon :app:assembleDebug
+
+      - name: Prepare APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk dist/Sawalef.apk
+          ls -lh dist/Sawalef.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sawalef-APK
+          path: dist/Sawalef.apk
+          if-no-files-found: error
+          retention-days: 30

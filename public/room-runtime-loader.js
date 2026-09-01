@@ -2,7 +2,7 @@
   if (window.__sawalefRoomRuntimeLoader) return;
   window.__sawalefRoomRuntimeLoader = true;
 
-  const VERSION = '17';
+  const VERSION = '18';
   let roomRuntimePromise = null;
   let adminMonitorPromise = null;
 
@@ -75,8 +75,6 @@
 
       if (typeof window.Notification === 'undefined') window.Notification = { permission: 'denied' };
 
-      // Keep the proven v10 room stack only. v11 extras repeatedly caused the
-      // main thread to stall while entering a voice room on real browsers.
       document.documentElement.dataset.roomRuntimeStep = 'room-ui';
       await loadScript(`/room-experience-v10.js?v=${VERSION}`, 'room-experience-v10');
 

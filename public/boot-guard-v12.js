@@ -2,6 +2,17 @@
   if (window.__sawalefBootGuardV12) return;
   window.__sawalefBootGuardV12 = true;
 
+  // Version query strings were only used to force-refresh old browser caches.
+  // Keep one public Sawalef URL: strip only ?v=... while preserving invite params such as ?join=...
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.has('v')) {
+      url.searchParams.delete('v');
+      const search = url.searchParams.toString();
+      history.replaceState(history.state, '', url.pathname + (search ? '?' + search : '') + url.hash);
+    }
+  } catch {}
+
   const boot = document.getElementById('bootPage');
   let finished = false;
 

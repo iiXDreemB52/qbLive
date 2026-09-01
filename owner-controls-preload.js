@@ -97,7 +97,6 @@ function install(io) {
   io.on('connection', socket => {
     socket.data.ownerMuted = false;
 
-    // Prevent a server-muted member from entering microphone mode through the normal Socket.IO path.
     socket.use((packet, next) => {
       const event = packet?.[0];
       if (event === 'voice-join' && socket.data.ownerMuted) {
@@ -132,6 +131,23 @@ function install(io) {
         const room = roomCode(payload.roomId || socket.data.roomId || '');
         const permission = await canManage(socket, room);
         if (!permission.ok) return ack({ ok: false, error: 'الحذف متاح لمنشئ المجموعة فقط.' });
+
+        // Reuse groups-preload's own deletion handler so Supabase and its in-memory list stay identical.
+        const adminDelete = socket.listeners('admin:group:delete')?.[0];
+        if (typeof adminDelete === 'function') {
+          const oldRole = socket.data.user?.role;
+          if (socket.data.user) socket.data.user.role = 'admin';
+          const result = await new Promise(resolve => {
+            try { adminDelete({ roomId: room }, r => resolve(r || { ok: false })); }
+            catch (e) { resolve({ ok: false, error: e?.message || 'delete_failed' }); }
+          });
+          if (socket.data.user) socket.data.user.role = oldRole;
+          if (!result?.ok) return ack({ ok: false, error: result?.error || 'تعذر حذف المجموعة.' });
+          io.emit('group:deleted', { roomId: room });
+          return ack({ ok: true });
+        }
+
+        // Fallback for unexpected startup order.
         if (!(await deleteGroup(room))) return ack({ ok: false, error: 'المجموعة غير موجودة.' });
         const ids = [...(io.sockets.adapter.rooms.get(room) || [])];
         io.to(room).emit('room-closed', { reason: 'تم حذف المجموعة بواسطة المنشئ.' });
@@ -198,10 +214,6 @@ function install(io) {
       if (socket.data.user) socket.data.user.avatar = avatar.slice(0, 650000);
       io.emit('profile:updated', { userId: socket.data.user?.id || '', avatar: socket.data.user?.avatar || '' });
       emitPresence(io, socket.data.roomId);
-    });
-
-    socket.on('disconnect', () => {
-      // Socket-scoped owner mute disappears with that device connection, which is intentional.
     });
   });
 }

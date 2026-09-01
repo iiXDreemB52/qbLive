@@ -50,13 +50,19 @@ jobs:
           (out / 'sawalef_icon.webp').write_bytes(base64.b64decode(match.group(1)))
           PY
 
-      - name: Build APK
-        run: gradle -p android --no-daemon :app:assembleDebug
+      - name: Build unsigned release APK
+        run: gradle -p android --no-daemon :app:assembleRelease
 
-      - name: Prepare APK
+      - name: Sign development APK with stable public Android test key
         run: |
-          mkdir -p dist
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist/Sawalef.apk
+          set -euo pipefail
+          mkdir -p dist signing
+          curl -fsSL https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/testkey.pk8 -o signing/testkey.pk8
+          curl -fsSL https://raw.githubusercontent.com/aosp-mirror/platform_build/master/target/product/security/testkey.x509.pem -o signing/testkey.x509.pem
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk dist/Sawalef-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --key signing/testkey.pk8 --cert signing/testkey.x509.pem --out dist/Sawalef.apk dist/Sawalef-aligned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs dist/Sawalef.apk
+          rm -f dist/Sawalef-aligned.apk
           ls -lh dist/Sawalef.apk
 
       - name: Upload APK

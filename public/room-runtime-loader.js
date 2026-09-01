@@ -2,7 +2,7 @@
   if (window.__sawalefRoomRuntimeLoader) return;
   window.__sawalefRoomRuntimeLoader = true;
 
-  const VERSION = '14';
+  const VERSION = '15';
   let roomRuntimePromise = null;
   let adminMonitorPromise = null;
 
@@ -42,6 +42,7 @@
 
   async function loadLiveKitLocal() {
     if (window.LivekitClient?.Room) return;
+    document.documentElement.dataset.roomRuntimeStep = 'livekit';
     await loadScript(`/vendor/livekit-client.umd.min.js?v=${VERSION}`, 'livekit-local', 6000);
     if (!window.LivekitClient?.Room) throw new Error('مكتبة LiveKit المحلية لم تبدأ.');
   }
@@ -53,35 +54,42 @@
     roomRuntimePromise = (async () => {
       const started = performance.now();
       document.documentElement.dataset.roomRuntime = 'loading';
+      document.documentElement.dataset.roomRuntimeStep = 'paint';
 
       addCss(`/advanced-call-v4.css?v=${VERSION}`, 'room-data-css');
       addCss(`/room-experience-v10.css?v=${VERSION}`, 'room-experience-css');
-      addCss(`/room-experience-v11.css?v=${VERSION}`, 'room-experience-v11-css');
 
+      // Show the room before loading the call engine so navigation never feels frozen.
       await nextPaint();
       await loadLiveKitLocal();
+
+      document.documentElement.dataset.roomRuntimeStep = 'voice';
       await loadScript(`/voice-v3.js?v=${VERSION}`, 'voice-v3');
       document.dispatchEvent(new CustomEvent('sawalef:voice-core-ready'));
 
+      document.documentElement.dataset.roomRuntimeStep = 'helpers';
       await Promise.all([
         loadScript(`/livekit-audio-fix.js?v=${VERSION}`, 'livekit-audio-fix'),
         loadScript(`/room-data-v1.js?v=${VERSION}`, 'room-data-v1'),
         loadScript(`/room-perf-v1.js?v=${VERSION}`, 'room-perf-v1'),
       ]);
 
-      // v10 references Notification directly; provide a harmless compatibility object only when absent.
       if (typeof window.Notification === 'undefined') window.Notification = { permission: 'denied' };
 
-      // Exactly one ordered screen-share stack: v10 base first, then the v11 refinements.
+      // v10 is the stable room UI/share implementation. The old v11 refinement
+      // installed a broad DOM observer that could keep the main thread busy and
+      // prevent the runtime from ever reaching ready on room entry.
+      document.documentElement.dataset.roomRuntimeStep = 'room-ui';
       await loadScript(`/room-experience-v10.js?v=${VERSION}`, 'room-experience-v10');
-      await loadScript(`/room-experience-v11.js?v=${VERSION}`, 'room-experience-v11');
 
       document.documentElement.dataset.roomRuntime = 'ready';
+      document.documentElement.dataset.roomRuntimeStep = 'ready';
       window.__sawalefRoomRuntimeMs = Math.round(performance.now() - started);
       document.dispatchEvent(new CustomEvent('sawalef:room-runtime-ready', { detail: { ms: window.__sawalefRoomRuntimeMs } }));
     })().catch(err => {
       roomRuntimePromise = null;
       document.documentElement.dataset.roomRuntime = 'failed';
+      document.documentElement.dataset.roomRuntimeStep = 'failed';
       console.error('Sawalef room runtime failed:', err);
       try { showToast?.('تعذر تجهيز المكالمة الآن — القروب والشات ما زالوا يعملون.'); } catch {}
       throw err;

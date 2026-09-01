@@ -8,7 +8,8 @@
 
   function settleBoot() {
     const hasAnyToken = Boolean(localStorage.getItem('sawalef_token') || sessionStorage.getItem('sawalef_token'));
-    const ready = !hasAnyToken || Boolean(me) || !byId('authPage')?.classList.contains('hidden');
+    const runtimeTokenGone = typeof token === 'string' && !token;
+    const ready = !hasAnyToken || Boolean(me) || runtimeTokenGone;
     if (!ready) return;
     document.body.classList.remove('booting');
     boot?.classList.add('hidden');
@@ -151,7 +152,9 @@
   function renderOwnerMembers() {
     const view = byId('ownerMembers');
     if (!view) return;
-    const members = Array.isArray(currentPresence) ? currentPresence : [];
+    const members = Array.isArray(ownerInfo?.members)
+      ? ownerInfo.members
+      : (Array.isArray(currentPresence) ? currentPresence : []);
     view.innerHTML = members.length ? members.map(u => {
       const self = u.userId === me?.id && u.id === socket?.id;
       const mutedByOwner = Boolean(u.ownerMuted);
@@ -232,7 +235,7 @@
     });
     socket.on('group:deleted', () => refreshCommunity?.());
     socket.on('presence', () => {
-      setTimeout(() => { if (ownerInfo?.canManage) { renderOwnerMembers(); loadOwnerInfo(); } }, 0);
+      setTimeout(() => { if (ownerInfo?.canManage) loadOwnerInfo(); }, 0);
     });
   }
 
@@ -251,9 +254,9 @@
     if (roomId !== lastOwnerRoom) loadOwnerInfo();
   }, 350);
 
-  // If the session bridge was invalid and auth became visible, remove the stale session token too.
+  // If a stored session is invalid, bootstrap clears the runtime token; only then reveal auth.
   setTimeout(() => {
-    if (!me && !byId('authPage')?.classList.contains('hidden')) {
+    if (!me && typeof token === 'string' && !token) {
       try { sessionStorage.removeItem('sawalef_token'); } catch {}
       settleBoot();
     }

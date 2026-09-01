@@ -1,0 +1,32 @@
+name: Sawalef Room Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'server.js'
+      - 'cache-bust-preload.js'
+      - 'package.json'
+      - 'scripts/sawalef-room-smoke.mjs'
+      - '.github/workflows/sawalef-room-smoke.yml'
+
+concurrency:
+  group: sawalef-room-smoke-v1
+  cancel-in-progress: true
+
+jobs:
+  room-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Test live voice room
+        run: node scripts/sawalef-room-smoke.mjs

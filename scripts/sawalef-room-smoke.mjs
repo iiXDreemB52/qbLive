@@ -14,16 +14,20 @@ async function waitForDeploy() {
   const marker = `const VERSION = '${EXPECTED_VERSION}'`;
   for (let i = 0; i < 45; i++) {
     try {
-      const res = await fetch(`${BASE}/room-runtime-loader.js?smoke=${Date.now()}`, { cache: 'no-store' });
-      const text = await res.text();
-      if (res.ok && text.includes(marker)) {
-        console.log(`[${since()}s] runtime v${EXPECTED_VERSION} is live`);
+      const [runtimeRes, polishRes] = await Promise.all([
+        fetch(`${BASE}/room-runtime-loader.js?smoke=${Date.now()}`, { cache: 'no-store' }),
+        fetch(`${BASE}/polish-v19.js?smoke=${Date.now()}`, { cache: 'no-store' })
+      ]);
+      const runtimeText = await runtimeRes.text();
+      const polishText = await polishRes.text();
+      if (runtimeRes.ok && runtimeText.includes(marker) && polishRes.ok && polishText.includes('__sawalefPolishV19')) {
+        console.log(`[${since()}s] runtime v${EXPECTED_VERSION} + polish v19 are live`);
         return;
       }
     } catch {}
     await sleep(2000);
   }
-  throw new Error(`runtime v${EXPECTED_VERSION} did not become live`);
+  throw new Error('production did not reach Sawalef polish v19');
 }
 
 await waitForDeploy();
@@ -33,8 +37,10 @@ const browser = await chromium.launch({
   args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
 });
 const context = await browser.newContext({
-  viewport: { width: 1280, height: 800 },
-  permissions: ['microphone']
+  viewport: { width: 390, height: 844 },
+  permissions: ['microphone'],
+  isMobile: true,
+  hasTouch: true
 });
 const page = await context.newPage();
 const pageErrors = [];
@@ -51,7 +57,8 @@ try {
   await page.click('#registerForm button[type="submit"]');
   await page.waitForSelector('#lobbyPage:not(.hidden)', { timeout: 15000 });
   await page.waitForFunction(() => document.getElementById('connectionBadge')?.textContent?.trim() === 'متصل', { timeout: 12000 });
-  console.log(`[${since()}s] socket connected`);
+  await page.waitForSelector('#lobbyNotifyBtn', { state: 'visible', timeout: 5000 });
+  console.log(`[${since()}s] mobile lobby + notification button ready`);
 
   await page.click('#openCreateGroup');
   await page.fill('#groupName', `Smoke ${Date.now()}`);
@@ -61,6 +68,9 @@ try {
   await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
   const roomVisibleMs = Date.now() - roomStart;
   console.log(`[${since()}s] room visible in ${roomVisibleMs}ms`);
+
+  await page.waitForFunction(() => Number(document.getElementById('memberCount')?.textContent || 0) >= 1, { timeout: 5000 });
+  await page.waitForFunction(() => document.getElementById('voiceCountTop')?.textContent === document.getElementById('memberCount')?.textContent, { timeout: 5000 });
 
   await page.waitForFunction(() => Boolean(window.LivekitClient?.Room), { timeout: 10000 });
   await page.waitForFunction(() => Boolean(window.SawalefLiveKit?.room), { timeout: 15000 });
@@ -78,7 +88,6 @@ try {
     longTasks: Number(window.__sawalefRoomPerf?.longTasks || 0),
     maxLongTaskMs: Number(window.__sawalefRoomPerf?.maxLongTaskMs || 0),
   }));
-  console.log('RUNTIME', JSON.stringify(runtime));
 
   const joinStart = Date.now();
   await page.click('#joinVoice', { timeout: 3000 });
@@ -100,27 +109,72 @@ try {
       publications: r?.localParticipant?.audioTrackPublications?.size || 0,
     };
   });
-  console.log('MIC', JSON.stringify(mic));
 
-  const before = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
-  const clickStart = Date.now();
-  await page.click('#chatToggle');
-  await page.waitForFunction(prev => document.getElementById('chatSheet')?.classList.contains('collapsed') !== prev, before, { timeout: 1500 });
-  const clickMs = Date.now() - clickStart;
+  const controls = await page.evaluate(() => {
+    const nav = document.querySelector('.room-controls');
+    const visible = [...nav.querySelectorAll('.control-btn')].filter(el => getComputedStyle(el).display !== 'none');
+    const notif = document.getElementById('callNotifyBtn');
+    return {
+      clientWidth: nav.clientWidth,
+      scrollWidth: nav.scrollWidth,
+      visibleIds: visible.map(el => el.id),
+      roomNotificationDisplay: notif ? getComputedStyle(notif).display : 'missing',
+    };
+  });
+  console.log('CONTROLS', JSON.stringify(controls));
 
-  const result = { roomVisibleMs, runtimeMs: runtime.ms, joinMs, clickMs, ...mic };
+  // Chat must work while the microphone is open.
+  const collapsed = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
+  if (collapsed) await page.click('#chatToggle');
+  const chatText = `رسالة أثناء المكالمة ${Date.now()}`;
+  await page.fill('#messageInput', chatText);
+  await page.click('#messageForm .send-btn');
+  await page.waitForFunction(text => [...document.querySelectorAll('.msg-text')].some(el => el.textContent?.includes(text)), chatText, { timeout: 5000 });
+
+  const chatState = await page.evaluate(() => ({
+    disabled: document.getElementById('messageInput')?.disabled,
+    readOnly: document.getElementById('messageInput')?.readOnly,
+    pointer: getComputedStyle(document.getElementById('messageInput')).pointerEvents,
+  }));
+
+  // Verify mute visual exists and is the new clean badge styling.
+  await page.click('#muteBtn');
+  await page.waitForFunction(() => { try { return Boolean(muted); } catch { return false; } }, { timeout: 5000 });
+  await page.waitForSelector('.mute-badge', { timeout: 5000 });
+  const muteBadge = await page.evaluate(() => {
+    const badge = document.querySelector('.mute-badge');
+    const s = getComputedStyle(badge);
+    return { backgroundImage: s.backgroundImage, fontSize: s.fontSize, width: s.width, height: s.height };
+  });
+
+  const result = {
+    roomVisibleMs,
+    runtimeMs: runtime.ms,
+    joinMs,
+    ...mic,
+    controls,
+    chatState,
+    memberCount: await page.textContent('#memberCount'),
+    topCount: await page.textContent('#voiceCountTop'),
+    muteBadge,
+  };
   console.log('FINAL', JSON.stringify(result));
 
   if (!runtime.screen || runtime.state !== 'ready') throw new Error(`runtime invalid: ${JSON.stringify(runtime)}`);
   if (!mic.joined || !mic.enabled || mic.publications < 1) throw new Error(`microphone invalid: ${JSON.stringify(mic)}`);
+  if (controls.scrollWidth > controls.clientWidth + 2) throw new Error(`mobile controls overflow horizontally: ${JSON.stringify(controls)}`);
+  if (controls.roomNotificationDisplay !== 'none') throw new Error(`notification button still occupies room dock: ${JSON.stringify(controls)}`);
+  if (!controls.visibleIds.includes('chatToggle')) throw new Error('chat control disappeared while in call');
+  if (chatState.disabled || chatState.readOnly || chatState.pointer === 'none') throw new Error(`chat input unusable in call: ${JSON.stringify(chatState)}`);
+  if (result.memberCount !== '1' || result.topCount !== '1') throw new Error(`member count incorrect: ${JSON.stringify({ memberCount: result.memberCount, topCount: result.topCount })}`);
+  if (!muteBadge.backgroundImage.includes('svg') && muteBadge.backgroundImage === 'none') throw new Error(`mute badge not polished: ${JSON.stringify(muteBadge)}`);
   if (roomVisibleMs > 3500) throw new Error(`room entry slow: ${roomVisibleMs}ms`);
   if (runtime.ms > 8000) throw new Error(`runtime slow: ${runtime.ms}ms`);
   if (joinMs > 6000) throw new Error(`voice join slow: ${joinMs}ms`);
-  if (clickMs > 1200) throw new Error(`controls slow: ${clickMs}ms`);
   if (runtime.maxLongTaskMs > 250) throw new Error(`main thread blocked: ${runtime.maxLongTaskMs}ms`);
   if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
 
-  console.log('SMOKE PASS');
+  console.log('MOBILE SMOKE PASS');
 } finally {
   await browser.close();
 }

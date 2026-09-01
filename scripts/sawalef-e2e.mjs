@@ -10,11 +10,10 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, permissions: ['microphone'] });
 const page = await context.newPage();
 const pageErrors = [];
-const failedRequests = [];
 
 page.on('console', msg => console.log(`[${since()}s] console:${msg.type()} ${msg.text()}`));
 page.on('pageerror', err => { const line = `[${since()}s] pageerror ${String(err)}`; console.error(line); pageErrors.push(line); });
-page.on('requestfailed', req => { const line = `[${since()}s] requestfailed ${req.url()} ${req.failure()?.errorText || ''}`; console.error(line); failedRequests.push(line); });
+page.on('requestfailed', req => console.error(`[${since()}s] requestfailed ${req.url()} ${req.failure()?.errorText || ''}`));
 page.on('response', res => {
   const u = res.url();
   if (u.includes('livekit') || u.includes('/vendor/') || u.startsWith(BASE)) console.log(`[${since()}s] ${res.status()} ${u}`);
@@ -31,14 +30,27 @@ try {
   await page.fill('#registerPassword', PASS);
   await page.click('#registerForm button[type="submit"]');
   await page.waitForSelector('#lobbyPage:not(.hidden)', { timeout: 15000 });
-  console.log(`[${since()}s] lobby ready as ${USER}`);
+  await page.waitForFunction(() => Boolean(window.socket?.connected), { timeout: 10000 });
+  console.log(`[${since()}s] lobby + socket ready as ${USER}`);
 
   await page.click('#openCreateGroup');
   await page.fill('#groupName', `E2E ${Date.now()}`);
   await page.click('#groupTypePrivate');
   const roomStart = Date.now();
   await page.click('#confirmCreateGroup');
-  await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
+  try {
+    await page.waitForSelector('#roomPage:not(.hidden)', { timeout: 10000 });
+  } catch (e) {
+    const diagnostic = await page.evaluate(() => ({
+      socketConnected: Boolean(window.socket?.connected),
+      roomId: typeof roomId === 'string' ? roomId : '',
+      toast: document.getElementById('toast')?.textContent || '',
+      createDisabled: Boolean(document.getElementById('confirmCreateGroup')?.disabled),
+      modalHidden: document.getElementById('createGroupModal')?.classList.contains('hidden'),
+    }));
+    console.error('ROOM_ENTRY_DIAGNOSTIC', JSON.stringify(diagnostic));
+    throw e;
+  }
   const roomVisibleMs = Date.now() - roomStart;
   console.log(`[${since()}s] room visible in ${roomVisibleMs}ms`);
 
@@ -52,7 +64,6 @@ try {
   await page.waitForFunction(() => document.documentElement.dataset.roomRuntime === 'ready', { timeout: 10000 });
   console.log(`[${since()}s] room runtime ready`);
 
-  // Responsiveness check: a click must be processed immediately after the call stack is ready.
   const before = await page.locator('#chatSheet').evaluate(el => el.classList.contains('collapsed'));
   const clickStarted = Date.now();
   await page.click('#chatToggle');
@@ -74,9 +85,7 @@ try {
   }));
   console.log('FINAL_STATE', JSON.stringify({ ...perf, roomVisibleMs, clickMs }));
 
-  if (perf.booting || !perf.roomVisible || !perf.livekit || !perf.sawalefLiveKit || !perf.screenButton || perf.runtimeState !== 'ready') {
-    throw new Error(`Invalid final state: ${JSON.stringify(perf)}`);
-  }
+  if (perf.booting || !perf.roomVisible || !perf.livekit || !perf.sawalefLiveKit || !perf.screenButton || perf.runtimeState !== 'ready') throw new Error(`Invalid final state: ${JSON.stringify(perf)}`);
   if (roomVisibleMs > 3000) throw new Error(`Room navigation too slow: ${roomVisibleMs}ms`);
   if (perf.runtimeMs > 8000) throw new Error(`Room runtime too slow: ${perf.runtimeMs}ms`);
   if (clickMs > 1200) throw new Error(`Room controls are sluggish: ${clickMs}ms`);

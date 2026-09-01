@@ -15,6 +15,51 @@
   let livekitRoom = null;
   let livekitActive = false;
   const remoteLiveKitAudio = new Set();
+  const speakingIdentities = new Set();
+
+  const speakingStyle = document.createElement('style');
+  speakingStyle.textContent = `
+    .speaker.speaking .speaker-avatar{
+      border-color:#38d777!important;
+      box-shadow:0 0 0 5px rgba(56,215,119,.18),0 0 28px rgba(56,215,119,.65),0 12px 35px rgba(0,0,0,.3)!important;
+      animation:sawalefSpeakingPulse .8s ease-in-out infinite alternate;
+    }
+    @keyframes sawalefSpeakingPulse{
+      from{transform:scale(1);box-shadow:0 0 0 4px rgba(56,215,119,.14),0 0 20px rgba(56,215,119,.42),0 12px 35px rgba(0,0,0,.3)}
+      to{transform:scale(1.035);box-shadow:0 0 0 7px rgba(56,215,119,.22),0 0 34px rgba(56,215,119,.72),0 12px 35px rgba(0,0,0,.3)}
+    }
+  `;
+  document.head.appendChild(speakingStyle);
+
+  function speakerElementForIdentity(identity) {
+    try {
+      const person = Array.isArray(currentPresence)
+        ? currentPresence.find(u => String(u.userId || '') === String(identity || ''))
+        : null;
+      return person ? document.getElementById(`speaker-${person.id}`) : null;
+    } catch { return null; }
+  }
+
+  function paintSpeaking() {
+    document.querySelectorAll('#voiceStage .speaker').forEach(el => el.classList.remove('speaking'));
+    for (const identity of speakingIdentities) {
+      speakerElementForIdentity(identity)?.classList.add('speaking');
+    }
+  }
+
+  function setActiveSpeakers(participants = []) {
+    speakingIdentities.clear();
+    for (const participant of participants) {
+      const identity = participant?.identity;
+      if (identity) speakingIdentities.add(String(identity));
+    }
+    paintSpeaking();
+  }
+
+  const voiceStage = $('voiceStage');
+  if (voiceStage) {
+    new MutationObserver(() => paintSpeaking()).observe(voiceStage, { childList: true, subtree: true });
+  }
 
   function liveKitAudioCapture() {
     const supported = navigator.mediaDevices?.getSupportedConstraints?.() || {};
@@ -94,8 +139,13 @@
     room.on(lk.RoomEvent.TrackUnsubscribed, (track) => {
       if (track.kind === lk.Track.Kind.Audio || track.kind === 'audio') detachRemoteAudio(track);
     });
+    if (lk.RoomEvent.ActiveSpeakersChanged) {
+      room.on(lk.RoomEvent.ActiveSpeakersChanged, setActiveSpeakers);
+    }
     room.on(lk.RoomEvent.Disconnected, () => {
       clearLiveKitAudio();
+      speakingIdentities.clear();
+      paintSpeaking();
       if (livekitActive && joinedVoice) showToast('انقطع سيرفر الصوت، جارٍ إعادة الاتصال تلقائيًا.');
     });
   }
@@ -142,6 +192,8 @@
       if (!lk?.Room) throw new Error('تعذر تحميل محرك LiveKit على جهازك.');
 
       clearLiveKitAudio();
+      speakingIdentities.clear();
+      paintSpeaking();
       if (livekitRoom) {
         try { await livekitRoom.disconnect(); } catch {}
       }
@@ -176,6 +228,8 @@
       console.error('LiveKit voice failed:', err);
       livekitActive = false;
       joinedVoice = false;
+      speakingIdentities.clear();
+      paintSpeaking();
       clearLiveKitAudio();
       try { await livekitRoom?.disconnect(); } catch {}
       livekitRoom = null;
@@ -192,6 +246,8 @@
     joinedVoice = false;
     muted = false;
     deafened = false;
+    speakingIdentities.clear();
+    paintSpeaking();
     try { await livekitRoom?.localParticipant?.setMicrophoneEnabled(false); } catch {}
     try { await livekitRoom?.disconnect(); } catch {}
     livekitRoom = null;
@@ -210,6 +266,10 @@
       $('muteBtn').textContent = muted ? '🔇' : '🎙';
       $('muteBtn').classList.toggle('live', !muted);
       socket?.emit('voice-state', { muted });
+      if (muted && me?.id) {
+        speakingIdentities.delete(String(me.id));
+        paintSpeaking();
+      }
     } catch {
       muted = !muted;
       showToast('تعذر تغيير حالة المايك.');

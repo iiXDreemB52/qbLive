@@ -38,6 +38,19 @@ async function checkLiveKit() {
     return { status: 'red', label: 'معطل', configured: true, latencyMs: Date.now() - start, error: String(e?.message || e).slice(0, 180), url: LIVEKIT_URL };
   }
 }
+
+setTimeout(() => {
+  checkLiveKit().then((r) => {
+    console.log('LK_SERVER_HEALTH', JSON.stringify({
+      status: r.status,
+      configured: r.configured,
+      latencyMs: r.latencyMs,
+      activeRooms: r.activeRooms || 0,
+      error: r.error || '',
+    }));
+  }).catch((e) => console.error('LK_SERVER_HEALTH_FAILED', e?.message || e));
+}, 2500);
+
 function install(io) {
   io.on('connection', (socket) => {
     socket.data.lkMonitor = { state: 'idle', quality: 'unknown', remoteParticipants: 0, subscribedAudio: 0, canPlaybackAudio: null, updatedAt: Date.now() };
@@ -52,6 +65,27 @@ function install(io) {
         error: String(payload.error || '').slice(0, 180),
         updatedAt: Date.now(),
       };
+    });
+    socket.on('livekit:diagnostic', (payload = {}) => {
+      const safe = {
+        phase: String(payload.phase || '').slice(0, 40),
+        socketId: socket.id,
+        userId: socket.data.user?.id || '',
+        roomId: socket.data.roomId || '',
+        state: String(payload.state || '').slice(0, 30),
+        localIdentity: String(payload.localIdentity || '').slice(0, 80),
+        remoteParticipants: Math.max(0, Number(payload.remoteParticipants) || 0),
+        canPlaybackAudio: typeof payload.canPlaybackAudio === 'boolean' ? payload.canPlaybackAudio : null,
+        tokenIdentity: String(payload.tokenIdentity || '').slice(0, 80),
+        participant: String(payload.participant || '').slice(0, 80),
+        trackSid: String(payload.trackSid || '').slice(0, 80),
+        readyState: String(payload.readyState || payload.trackState || '').slice(0, 30),
+        enabled: typeof payload.enabled === 'boolean' ? payload.enabled : payload.trackEnabled,
+        muted: typeof payload.muted === 'boolean' ? payload.muted : undefined,
+        micEnabled: typeof payload.micEnabled === 'boolean' ? payload.micEnabled : undefined,
+        error: String(payload.error || '').slice(0, 180),
+      };
+      console.log('LK_CLIENT_DIAG', JSON.stringify(safe));
     });
     socket.on('livekit:health', async (_payload, ack = () => {}) => {
       if (!isAdmin(socket)) return ack({ ok: false, error: 'admin_required' });

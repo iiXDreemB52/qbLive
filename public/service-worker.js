@@ -1,8 +1,10 @@
-const CACHE='sawalef-v14';
+const CACHE='sawalef-v15';
 const CORE_ASSETS=[
   '/styles.css?v=13',
   '/lobby-v2.css?v=13',
   '/theme-blue.css?v=13',
+  '/polish-v19.css?v=19',
+  '/polish-v20.css?v=20',
   '/pre-auth.js?v=13',
   '/app.js?v=13',
   '/boot-guard-v12.js?v=13',
@@ -11,8 +13,10 @@ const CORE_ASSETS=[
   '/auth-fix.js?v=13',
   '/group-create-fix.js?v=13',
   '/room-runtime-loader.js?v=13',
+  '/polish-v19.js?v=19',
+  '/polish-v20.js?v=20',
   '/manifest.webmanifest?v=13',
-  '/icon.svg'
+  '/icon.svg?v=20'
 ];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE_ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

@@ -29,6 +29,6 @@ jobs:
           npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Wait for Render deploy
-        run: sleep 75
+        run: sleep 10
       - name: Test live room entry
         run: node scripts/sawalef-e2e.mjs

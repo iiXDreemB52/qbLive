@@ -1,5 +1,5 @@
-const CACHE='sawalef-v9';
-const ASSETS=['/styles.css?v=9','/lobby-v2.css?v=9','/theme-blue.css?v=9','/advanced-call-v4.css?v=9','/pre-auth.js?v=9','/app.js?v=9','/audio-ultra.js?v=9','/voice-v3.js?v=9','/livekit-audio-fix.js?v=9','/groups.js?v=9','/livekit-admin-monitor.js?v=9','/auth-fix.js?v=9','/pro-features.js?v=9','/group-create-fix.js?v=9','/advanced-call-v4.js?v=9','/manifest.webmanifest?v=9','/icon.svg'];
+const CACHE='sawalef-v10';
+const ASSETS=['/styles.css?v=10','/lobby-v2.css?v=10','/theme-blue.css?v=10','/advanced-call-v4.css?v=10','/room-experience-v10.css?v=10','/pre-auth.js?v=10','/app.js?v=10','/audio-ultra.js?v=10','/voice-v3.js?v=10','/livekit-audio-fix.js?v=10','/groups.js?v=10','/livekit-admin-monitor.js?v=10','/auth-fix.js?v=10','/pro-features.js?v=10','/group-create-fix.js?v=10','/advanced-call-v4.js?v=10','/compat-v10.js?v=10','/room-experience-v10.js?v=10','/manifest.webmanifest?v=10','/icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

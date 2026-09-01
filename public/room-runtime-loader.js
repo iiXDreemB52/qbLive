@@ -2,7 +2,7 @@
   if (window.__sawalefRoomRuntimeLoader) return;
   window.__sawalefRoomRuntimeLoader = true;
 
-  const VERSION = '16';
+  const VERSION = '17';
   let roomRuntimePromise = null;
   let adminMonitorPromise = null;
 
@@ -47,30 +47,6 @@
     if (!window.LivekitClient?.Room) throw new Error('مكتبة LiveKit المحلية لم تبدأ.');
   }
 
-  async function loadV11Safely() {
-    const NativeMutationObserver = window.MutationObserver;
-    const nativeObserve = NativeMutationObserver?.prototype?.observe;
-    if (typeof nativeObserve !== 'function') {
-      await loadScript(`/room-experience-v11.js?v=${VERSION}`, 'room-experience-v11');
-      return;
-    }
-
-    // v11 used to watch every class change across the whole body. Its own class
-    // updates then generated more observer work and could starve the main thread.
-    // During v11 boot only, narrow that specific body-wide observer to child
-    // additions/removals. Existing observers and all other observation stay intact.
-    NativeMutationObserver.prototype.observe = function sawalefBoundedObserve(target, options = {}) {
-      const broadClassWatch = target === document.body && options?.subtree === true && options?.attributes === true;
-      if (broadClassWatch) return nativeObserve.call(this, target, { childList: true, subtree: true });
-      return nativeObserve.call(this, target, options);
-    };
-    try {
-      await loadScript(`/room-experience-v11.js?v=${VERSION}`, 'room-experience-v11');
-    } finally {
-      NativeMutationObserver.prototype.observe = nativeObserve;
-    }
-  }
-
   const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   async function loadRoomRuntime() {
@@ -82,7 +58,6 @@
 
       addCss(`/advanced-call-v4.css?v=${VERSION}`, 'room-data-css');
       addCss(`/room-experience-v10.css?v=${VERSION}`, 'room-experience-css');
-      addCss(`/room-experience-v11.css?v=${VERSION}`, 'room-experience-v11-css');
 
       await nextPaint();
       await loadLiveKitLocal();
@@ -100,11 +75,10 @@
 
       if (typeof window.Notification === 'undefined') window.Notification = { permission: 'denied' };
 
+      // Keep the proven v10 room stack only. v11 extras repeatedly caused the
+      // main thread to stall while entering a voice room on real browsers.
       document.documentElement.dataset.roomRuntimeStep = 'room-ui';
       await loadScript(`/room-experience-v10.js?v=${VERSION}`, 'room-experience-v10');
-
-      document.documentElement.dataset.roomRuntimeStep = 'room-extras';
-      await loadV11Safely();
 
       document.documentElement.dataset.roomRuntime = 'ready';
       document.documentElement.dataset.roomRuntimeStep = 'ready';

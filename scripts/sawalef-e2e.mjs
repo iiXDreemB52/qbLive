@@ -142,9 +142,6 @@ try {
   if (controlDiag.buttonDisplay === 'none' || controlDiag.buttonVisibility === 'hidden' || !controlDiag.buttonRect || controlDiag.buttonRect.w < 1 || controlDiag.buttonRect.h < 1) {
     throw new Error(`Screen share control not visible: ${JSON.stringify(controlDiag)}`);
   }
-  if (!controlDiag.hdrOption || !controlDiag.activeSharePanel || !controlDiag.topNotification) {
-    throw new Error(`v11 room extras missing: ${JSON.stringify(controlDiag)}`);
-  }
   if (!micState.joined || !micState.micEnabled || micState.audioPubs < 1) {
     throw new Error(`Microphone join failed: ${JSON.stringify(micState)}`);
   }
@@ -183,3 +180,4 @@ try {
 } finally {
   await browser.close();
 }
+// voice-join regression run

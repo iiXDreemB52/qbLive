@@ -11,6 +11,10 @@ on:
       - 'scripts/sawalef-e2e.mjs'
       - '.github/workflows/sawalef-e2e.yml'
 
+concurrency:
+  group: sawalef-live-e2e
+  cancel-in-progress: true
+
 jobs:
   live-room-entry:
     runs-on: ubuntu-latest
@@ -19,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       - name: Install Playwright
         run: |
           npm install --no-save playwright

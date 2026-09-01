@@ -1,11 +1,11 @@
 {
   "name": "group-voice-chat",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "description": "Independent Arabic group text and high-quality voice chat",
   "main": "server.js",
   "scripts": {
-    "start": "node -r ./cache-bust-preload.js -r ./groups-preload.js -r ./owner-controls-preload.js -r ./livekit-monitor-preload.js -r ./livekit-identity-fix-preload.js server.js"
+    "start": "node -r ./cache-bust-preload.js -r ./groups-preload.js -r ./owner-controls-preload.js -r ./advanced-room-preload.js -r ./livekit-monitor-preload.js -r ./livekit-identity-fix-preload.js server.js"
   },
   "engines": {
     "node": ">=20"

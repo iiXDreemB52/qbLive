@@ -1,0 +1,30 @@
+name: Sawalef Live E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'server.js'
+      - 'cache-bust-preload.js'
+      - 'package.json'
+      - 'scripts/sawalef-e2e.mjs'
+      - '.github/workflows/sawalef-e2e.yml'
+
+jobs:
+  live-room-entry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Wait for Render deploy
+        run: sleep 75
+      - name: Test live room entry
+        run: node scripts/sawalef-e2e.mjs

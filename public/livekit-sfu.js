@@ -33,8 +33,9 @@
 
   function speakerElementForIdentity(identity) {
     try {
+      const id = String(identity || '');
       const person = Array.isArray(currentPresence)
-        ? currentPresence.find(u => String(u.userId || '') === String(identity || ''))
+        ? currentPresence.find(u => String(u.id || '') === id || String(u.userId || '') === id)
         : null;
       return person ? document.getElementById(`speaker-${person.id}`) : null;
     } catch { return null; }
@@ -113,6 +114,7 @@
       el.autoplay = true;
       el.playsInline = true;
       el.muted = deafened;
+      el.volume = 1;
       el.dataset.livekitAudio = '1';
       audioRack.appendChild(el);
       remoteLiveKitAudio.add(el);
@@ -266,8 +268,8 @@
       $('muteBtn').textContent = muted ? '🔇' : '🎙';
       $('muteBtn').classList.toggle('live', !muted);
       socket?.emit('voice-state', { muted });
-      if (muted && me?.id) {
-        speakingIdentities.delete(String(me.id));
+      if (muted) {
+        speakingIdentities.delete(String(socket?.id || me?.id || ''));
         paintSpeaking();
       }
     } catch {

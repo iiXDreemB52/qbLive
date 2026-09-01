@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.sawalef.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.sawalef.app'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0-dev'
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ''
+            versionNameSuffix ''
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

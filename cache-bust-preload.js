@@ -41,6 +41,13 @@ express.static = function sawalefStatic(root, options = {}) {
       res.setHeader('Cache-Control', 'public, max-age=86400');
       return res.sendFile(livekitBundle);
     }
+    if (pathname === '/.well-known/assetlinks.json') {
+      const assetLinks = path.join(root, '.well-known', 'assetlinks.json');
+      if (!fs.existsSync(assetLinks)) return res.status(404).end();
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.sendFile(assetLinks);
+    }
     return staticMiddleware(req, res, next);
   };
 };

@@ -32,7 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import org.webrtc.audio.JavaAudioDeviceModule
+import livekit.org.webrtc.audio.JavaAudioDeviceModule
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt

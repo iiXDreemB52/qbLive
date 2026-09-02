@@ -1,0 +1,72 @@
+/* Sawalef v21: native Android screen share + reliable mobile fullscreen */
+.screen-share-card:fullscreen,
+.screen-share-card:-webkit-full-screen{
+  width:100vw!important;
+  height:100vh!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#000!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.screen-share-card:fullscreen .screen-card-head,
+.screen-share-card:-webkit-full-screen .screen-card-head{
+  flex:0 0 auto!important;
+  width:100%!important;
+  padding:max(8px,env(safe-area-inset-top)) 12px 8px!important;
+  background:rgba(3,10,20,.94)!important;
+  z-index:3!important;
+}
+.screen-share-card:fullscreen .screen-video-host,
+.screen-share-card:-webkit-full-screen .screen-video-host{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  width:100%!important;
+  height:100%!important;
+  aspect-ratio:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  background:#000!important;
+}
+.screen-share-card:fullscreen .screen-video-host video,
+.screen-share-card:-webkit-full-screen .screen-video-host video{
+  position:static!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#000!important;
+}
+.screen-share-card:fullscreen .screen-live-badge,
+.screen-share-card:-webkit-full-screen .screen-live-badge{bottom:12px!important;left:12px!important}
+
+#screenShareBtn.native-screen-active{
+  background:linear-gradient(180deg,#b42335,#7d1524)!important;
+  border-color:rgba(255,103,123,.72)!important;
+  box-shadow:0 0 0 1px rgba(255,77,99,.14),0 12px 30px rgba(130,15,36,.28)!important;
+  color:#fff!important;
+}
+#screenShareBtn.native-screen-active::after{content:'إيقاف المشاركة'!important;color:#fff!important}
+#screenShareBtn.native-screen-starting:not(.native-screen-active){opacity:.78!important}
+#screenShareBtn.native-screen-starting:not(.native-screen-active)::after{content:'جاري بدء الشير'!important}
+.sawalef-native-app #screenCapabilityNote{border-color:rgba(61,145,255,.28);background:rgba(38,112,224,.08)}
+
+@media(max-width:700px){
+  .screen-share-card:fullscreen .screen-card-head,
+  .screen-share-card:-webkit-full-screen .screen-card-head{gap:6px!important;min-height:48px!important}
+  .screen-share-card:fullscreen .screen-card-title small,
+  .screen-share-card:-webkit-full-screen .screen-card-title small{display:none!important}
+  .screen-share-card:fullscreen .screen-volume,
+  .screen-share-card:-webkit-full-screen .screen-volume{width:72px!important;max-width:18vw!important}
+  .screen-share-card:fullscreen .screen-card-tools button,
+  .screen-share-card:-webkit-full-screen .screen-card-tools button{width:38px!important;height:38px!important}
+}

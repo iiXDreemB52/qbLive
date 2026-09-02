@@ -1,10 +1,11 @@
-const CACHE='sawalef-v15';
+const CACHE='sawalef-v21';
 const CORE_ASSETS=[
   '/styles.css?v=13',
   '/lobby-v2.css?v=13',
   '/theme-blue.css?v=13',
   '/polish-v19.css?v=19',
   '/polish-v20.css?v=20',
+  '/android-update-v21.css?v=21',
   '/pre-auth.js?v=13',
   '/app.js?v=13',
   '/boot-guard-v12.js?v=13',
@@ -12,9 +13,10 @@ const CORE_ASSETS=[
   '/groups.js?v=13',
   '/auth-fix.js?v=13',
   '/group-create-fix.js?v=13',
-  '/room-runtime-loader.js?v=13',
+  '/room-runtime-loader.js?v=21',
   '/polish-v19.js?v=19',
   '/polish-v20.js?v=20',
+  '/android-update-v21.js?v=21',
   '/manifest.webmanifest?v=13',
   '/icon.svg?v=20'
 ];

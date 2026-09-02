@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 def ciVersionCode = (System.getenv('GITHUB_RUN_NUMBER') ?: '1').toInteger()
@@ -13,7 +14,7 @@ android {
         minSdk 26
         targetSdk 35
         versionCode ciVersionCode
-        versionName "1.0.${ciVersionCode}-dev"
+        versionName "1.1.${ciVersionCode}-dev"
     }
 
     buildTypes {
@@ -32,4 +33,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'io.livekit:livekit-android:2.28.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
 }

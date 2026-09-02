@@ -2,7 +2,7 @@
   if (window.__sawalefRoomRuntimeLoader) return;
   window.__sawalefRoomRuntimeLoader = true;
 
-  const VERSION = '18';
+  const VERSION = '21';
   let roomRuntimePromise = null;
   let adminMonitorPromise = null;
 
@@ -58,6 +58,7 @@
 
       addCss(`/advanced-call-v4.css?v=${VERSION}`, 'room-data-css');
       addCss(`/room-experience-v10.css?v=${VERSION}`, 'room-experience-css');
+      addCss(`/native-android-v21.css?v=${VERSION}`, 'native-android-css');
 
       await nextPaint();
       await loadLiveKitLocal();
@@ -77,6 +78,7 @@
 
       document.documentElement.dataset.roomRuntimeStep = 'room-ui';
       await loadScript(`/room-experience-v10.js?v=${VERSION}`, 'room-experience-v10');
+      await loadScript(`/native-android-v21.js?v=${VERSION}`, 'native-android-v21');
 
       document.documentElement.dataset.roomRuntime = 'ready';
       document.documentElement.dataset.roomRuntimeStep = 'ready';

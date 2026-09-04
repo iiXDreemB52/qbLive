@@ -22,74 +22,21 @@
 
     const syncGoogleVisibility = () => {
       const ready = hasOfficialGoogleButton();
-      if (ready) {
-        if (!fallback.classList.contains('hidden')) fallback.classList.add('hidden');
-      } else {
-        if (fallback.classList.contains('hidden')) fallback.classList.remove('hidden');
-      }
+      fallback.classList.toggle('hidden', ready);
     };
 
-    const renderStableGoogleButton = () => {
-      if (!window.google?.accounts?.id || hasOfficialGoogleButton()) {
-        syncGoogleVisibility();
-        return;
-      }
-
-      let holder = document.getElementById('googleStableHolder');
-      if (!holder) {
-        holder = document.createElement('div');
-        holder.id = 'googleStableHolder';
-        holder.style.width = '100%';
-        holder.style.display = 'flex';
-        holder.style.justifyContent = 'center';
-        area.appendChild(holder);
-      }
-
-      try {
-        google.accounts.id.initialize({
-          client_id: cfg.googleClientId,
-          callback: (resp) => window.handleGoogle?.(resp),
-        });
-        google.accounts.id.renderButton(holder, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'pill',
-          text: 'continue_with',
-          width: 320,
-          locale: 'ar',
-        });
-      } catch {}
-
-      requestAnimationFrame(() => setTimeout(syncGoogleVisibility, 80));
-    };
-
-    const ensureGoogleSdk = () => {
-      if (window.google?.accounts?.id) {
-        renderStableGoogleButton();
-        return;
-      }
-
-      let script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-      if (!script) {
-        script = document.createElement('script');
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
-      script.addEventListener('load', renderStableGoogleButton, { once: true });
-    };
-
+    // app.js is the single owner of Google Identity initialization/rendering.
+    // This helper only keeps the fallback visibility in sync so a second
+    // Google button can never be rendered by a competing initializer.
     syncGoogleVisibility();
     const observer = new MutationObserver(syncGoogleVisibility);
-    observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
+    observer.observe(area, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
 
-    fallback.onclick = () => {
-      ensureGoogleSdk();
-      setTimeout(syncGoogleVisibility, 1200);
-    };
-
-    ensureGoogleSdk();
     setTimeout(syncGoogleVisibility, 1500);
     setTimeout(syncGoogleVisibility, 4000);
   } catch {}
